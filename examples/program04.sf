@@ -1,0 +1,3 @@
+func say_hi_to(string name){
+	print("hi " + name + "\n");
+}

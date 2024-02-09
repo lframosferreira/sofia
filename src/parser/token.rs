@@ -4,7 +4,7 @@ pub enum Integer {
     UnsignedInt64(u64),
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq)]
 pub enum Rational {
     Float64(f64),
 }
@@ -46,7 +46,7 @@ pub enum CompareOperator {
 }
 
 // A token type in the Sofia language
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq)]
 pub enum TokenType {
     // Open parenthesis
     // (
@@ -121,8 +121,14 @@ pub enum TokenType {
     Eof,
 }
 
-pub struct Token<T> {
-    type: TokenType,
+#[derive(Debug)]
+pub struct Token {
+    kind: TokenType,
     lexeme: String,
-    value: T
+}
+
+impl Token {
+    fn new(kind: TokenType, lexeme: String) -> Token {
+        Token { kind, lexeme }
+    }
 }

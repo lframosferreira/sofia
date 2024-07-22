@@ -123,12 +123,12 @@ pub enum TokenType {
 
 #[derive(Debug)]
 pub struct Token {
-    kind: TokenType,
-    lexeme: String,
+    _type: TokenType,
+    value: Option<String>,
 }
 
 impl Token {
-    fn new(kind: TokenType, lexeme: String) -> Token {
-        Token { kind, lexeme }
+    fn new(_type: TokenType, value: Option<String>) -> Token {
+        Token { _type, value }
     }
 }

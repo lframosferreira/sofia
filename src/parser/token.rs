@@ -123,8 +123,8 @@ pub enum TokenType {
 
 #[derive(Debug)]
 pub struct Token {
-    _type: TokenType,
-    value: Option<String>,
+    pub _type: TokenType,
+    pub value: Option<String>,
 }
 
 impl Token {

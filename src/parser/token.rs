@@ -23,12 +23,13 @@ pub enum Reserved {
     Else,
     And,
     Or,
+    Not,
     While,
     For,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum CompareOperator {
+pub enum CompareOp {
     // !=
     BangEqual,
     // =
@@ -86,7 +87,7 @@ pub enum TokenType {
 
     // Compare operatoros
     // ==
-    CompareOperator,
+    CompareOperator(CompareOp),
 
     // An identifier for a variable/function
     // x, sum
@@ -119,6 +120,9 @@ pub enum TokenType {
 
     // Represents end of input
     Eof,
+
+    // Represents a white space
+    Whitespace,
 }
 
 #[derive(Debug)]

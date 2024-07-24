@@ -80,12 +80,39 @@ fn check_single_char_token(content: &[u8], i: usize) -> Option<TokenType> {
         b'-' => Some(TokenType::Minus),
         b'*' => Some(TokenType::Asterisk),
         b'/' => Some(TokenType::Slash),
+        b',' => Some(TokenType::Comma),
         _ => None,
     }
 }
 
 fn check_number(content: &[u8], i: usize) -> Option<TokenType> {
     None
+}
+
+fn check_string(content: &[u8], idx: usize) -> Option<String> {
+    let starting_i = idx;
+    let mut i = idx;
+    if content[i] != b'"' {
+        return None;
+    }
+    i += 1;
+    while i < content.len() && content[i] != b'"' {
+        i += 1;
+    }
+    if i >= content.len() {
+        eprintln!("String should be delimited by quotes on start and on the end");
+        exit(1);
+    }
+    match String::from_utf8(content[starting_i..i + 1].to_vec()) {
+        Ok(str) => Some(str),
+        Err(e) => {
+            eprintln!(
+                "Failed to convert u8 array to string in the check string function: {}",
+                e
+            );
+            None
+        }
+    }
 }
 
 pub fn tokenize(content: &[u8]) -> Vec<Token> {
@@ -118,6 +145,18 @@ pub fn tokenize(content: &[u8]) -> Vec<Token> {
                 value: Some(String::from(c as char)),
             });
             i += increment;
+            continue;
+        }
+
+        // checking for strings
+        if let Some(str) = check_string(content, i) {
+            i += str.len();
+            dbg!(str.clone());
+            dbg!(str.clone().len());
+            tokens.push(Token {
+                _type: TokenType::String,
+                value: Some(str),
+            });
             continue;
         }
 
@@ -156,8 +195,8 @@ pub fn tokenize(content: &[u8]) -> Vec<Token> {
         }
 
         // finnally we check for numbers
-        if let Some(_number) = check_number(&content, i){
-            i+=1;
+        if let Some(_number) = check_number(&content, i) {
+            i += 1;
             continue;
         }
     }

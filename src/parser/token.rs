@@ -103,7 +103,7 @@ pub enum TokenType {
 
     // A string literal
     // "Hello world"
-    String(String),
+    String,
 
     // {
     LeftCurlyBracket,

@@ -1,3 +1,5 @@
+use std::process::exit;
+
 use crate::parser::token::{CompareOp, Reserved, Token, TokenType};
 
 fn check_reserved_word(buffer: &String) -> Option<Reserved> {
@@ -20,44 +22,106 @@ fn check_reserved_word(buffer: &String) -> Option<Reserved> {
     }
 }
 
+fn check_compare_operator(content: &[u8], i: usize) -> Option<CompareOp> {
+    let c = content[i];
+    if c == b'!' {
+        if i + 1 >= content.len() || content[i + 1] != b'=' {
+            eprintln!("The ! operator should have a = after it");
+            exit(1);
+        }
+        Some(CompareOp::BangEqual);
+    }
+    if c == b'=' {
+        if i + 1 >= content.len() {
+            return Some(CompareOp::Equal);
+        } else {
+            if content[i + 1] == b'=' {
+                return Some(CompareOp::EqualEqual);
+            } else {
+                return Some(CompareOp::Equal);
+            }
+        }
+    }
+    if c == b'>' {
+        if i + 1 >= content.len() {
+            return Some(CompareOp::Greater);
+        } else {
+            if content[i + 1] == b'=' {
+                return Some(CompareOp::GreaterEqual);
+            } else {
+                return Some(CompareOp::Greater);
+            }
+        }
+    }
+    if c == b'<' {
+        if i + 1 >= content.len() {
+            return Some(CompareOp::Less);
+        } else {
+            if content[i + 1] == b'=' {
+                return Some(CompareOp::LessEqual);
+            } else {
+                return Some(CompareOp::Less);
+            }
+        }
+    }
+    None
+}
+
+fn check_single_char_token(content: &[u8], i: usize) -> Option<TokenType> {
+    let c = content[i];
+    match c {
+        b' ' => Some(TokenType::Whitespace),
+        b';' => Some(TokenType::Semicolon),
+        b'{' => Some(TokenType::LeftCurlyBracket),
+        b'}' => Some(TokenType::RightCurlyBracket),
+        b'(' => Some(TokenType::LeftParen),
+        b')' => Some(TokenType::RightParen),
+        b'+' => Some(TokenType::Plus),
+        b'-' => Some(TokenType::Minus),
+        b'*' => Some(TokenType::Asterisk),
+        b'/' => Some(TokenType::Slash),
+        _ => None,
+    }
+}
+
+fn check_number(content: &[u8], i: usize) -> Option<TokenType> {
+    None
+}
+
 pub fn tokenize(content: &[u8]) -> Vec<Token> {
     let mut tokens: Vec<Token> = vec![];
     let mut buffer = String::from("");
-    let mut i = 0;
+    let mut i: usize = 0;
     while i < content.len() {
         let mut c = content[i];
-        if c == b' ' {
+
+        // first we check for single char tokens and get rid of them as soon as they are seen
+        if let Some(single_char_token) = check_single_char_token(&content, i) {
             tokens.push(Token {
-                _type: TokenType::Whitespace,
+                _type: single_char_token,
                 value: Some(String::from(c as char)),
             });
-            i+=1;
+            i += 1;
             continue;
         }
-        if c == b';' {
+
+        // we then check for compare operators
+        if let Some(compare_op) = check_compare_operator(&content, i) {
+            let increment = match compare_op {
+                CompareOp::Less => 1,
+                CompareOp::Equal => 1,
+                CompareOp::Greater => 1,
+                _ => 2,
+            };
             tokens.push(Token {
-                _type: TokenType::Semicolon,
+                _type: TokenType::CompareOperator(compare_op),
                 value: Some(String::from(c as char)),
             });
-            i+=1;
+            i += increment;
             continue;
         }
-        if c == b'!' {
-            tokens.push(Token {
-                _type: TokenType::CompareOperator(CompareOp::BangEqual),
-                value: Some(String::from(c as char)),
-            });
-            i+=1;
-            continue;
-        }
-        if c == b'=' {
-            tokens.push(Token {
-                _type: TokenType::CompareOperator(CompareOp::Equal),
-                value: Some(String::from(c as char)),
-            });
-            i+=1;
-            continue;
-        }
+
+        // here we found a reserved word or a identifier, and we check it
         if c.is_ascii_alphabetic() {
             buffer.push(c as char);
             i += 1;
@@ -90,8 +154,12 @@ pub fn tokenize(content: &[u8]) -> Vec<Token> {
             buffer.clear();
             continue;
         }
-        // por enqt ignora numeros e etc
-        i+=1;
+
+        // finnally we check for numbers
+        if let Some(_number) = check_number(&content, i){
+            i+=1;
+            continue;
+        }
     }
     tokens
 }

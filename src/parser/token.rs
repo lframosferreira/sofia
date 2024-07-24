@@ -28,7 +28,7 @@ pub enum Reserved {
     For,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CompareOp {
     // !=
     BangEqual,
@@ -37,7 +37,7 @@ pub enum CompareOp {
     // ==
     EqualEqual,
     // >
-    Greter,
+    Greater,
     // >=
     GreaterEqual,
     // <
@@ -49,21 +49,17 @@ pub enum CompareOp {
 // A token type in the Sofia language
 #[derive(Debug, PartialEq)]
 pub enum TokenType {
-    // Open parenthesis
+    // Left parenthesis
     // (
-    OpenParen,
+    LeftParen,
 
-    // Close parenthesis
+    // Right parenthesis
     // )
-    CloseParen,
+    RightParen,
 
     // Comma
     // ,
     Comma,
-
-    // Dot
-    // .
-    Dot,
 
     // Minus symbol
     // -

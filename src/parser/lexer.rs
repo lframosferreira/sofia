@@ -68,8 +68,7 @@ fn check_compare_operator(content: &[u8], i: usize) -> Option<CompareOp> {
 }
 
 fn check_single_char_token(content: &[u8], i: usize) -> Option<TokenType> {
-    let c = content[i];
-    match c {
+    match content[i] {
         b' ' => Some(TokenType::Whitespace),
         b';' => Some(TokenType::Semicolon),
         b'{' => Some(TokenType::LeftCurlyBracket),
@@ -197,9 +196,18 @@ pub fn tokenize(content: &[u8]) -> Vec<Token> {
         }
 
         // finnally we check for numbers
-        if let Some(number) = check_number(&content, i) {
+        if c.is_numeric() {
             i += 1;
-            continue;
+            buffer.push(c);
+            while i < content.len() && c.is_numeric(){
+                buffer.push(c);
+                i+=1;
+            }
+            if i >= content.len() {
+                // add token and finish the function
+                return tokens;
+            }
+            
         }
     }
     tokens

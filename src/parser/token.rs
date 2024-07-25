@@ -119,6 +119,9 @@ pub enum TokenType {
 
     // Represents a white space
     Whitespace,
+
+    // Newline
+    Newline,
 }
 
 #[derive(Debug)]

@@ -81,6 +81,7 @@ fn check_single_char_token(content: &[u8], i: usize) -> Option<TokenType> {
         b'*' => Some(TokenType::Asterisk),
         b'/' => Some(TokenType::Slash),
         b',' => Some(TokenType::Comma),
+        b'\n' => Some(TokenType::Newline),
         _ => None,
     }
 }
@@ -96,7 +97,10 @@ fn check_string(content: &[u8], idx: usize) -> Option<String> {
         return None;
     }
     i += 1;
-    while i < content.len() && content[i] != b'"' {
+    while i < content.len() {
+        if content[i] == b'"' {
+            break;
+        }
         i += 1;
     }
     if i >= content.len() {
@@ -149,10 +153,8 @@ pub fn tokenize(content: &[u8]) -> Vec<Token> {
         }
 
         // checking for strings
-        if let Some(str) = check_string(content, i) {
+        if let Some(str) = check_string(&content, i) {
             i += str.len();
-            dbg!(str.clone());
-            dbg!(str.clone().len());
             tokens.push(Token {
                 _type: TokenType::String,
                 value: Some(str),
@@ -195,7 +197,7 @@ pub fn tokenize(content: &[u8]) -> Vec<Token> {
         }
 
         // finnally we check for numbers
-        if let Some(_number) = check_number(&content, i) {
+        if let Some(number) = check_number(&content, i) {
             i += 1;
             continue;
         }

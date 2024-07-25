@@ -1,4 +1,5 @@
 mod parser;
+use std::process::exit;
 
 use parser::lexer::tokenize;
 use std::env;

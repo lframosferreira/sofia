@@ -197,15 +197,22 @@ pub fn tokenize(content: &[u8]) -> Vec<Token> {
 
         // finnally we check for numbers
         if c.is_numeric() {
-            i += 1;
             buffer.push(c);
+            i += 1;
             while i < content.len() && c.is_numeric(){
+                c=content[i];
                 buffer.push(c);
                 i+=1;
             }
             if i >= content.len() {
                 // add token and finish the function
                 return tokens;
+            }
+            c = content[i];
+            if c == b'.' {
+                
+            }else if c == b' ' {
+               tokens.push(Token{_type: TokenType::Rational}); 
             }
             
         }

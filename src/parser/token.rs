@@ -1,21 +1,14 @@
 #[derive(Debug, PartialEq, Eq)]
-pub enum Integer {
-    Int64(i64),
-    UnsignedInt64(u64),
-}
-
-#[derive(Debug, PartialEq)]
-pub enum Rational {
-    Float64(f64),
+pub enum Numeral {
+    Int64,
+    Float64,
 }
 
 // A reserved word in the Sofia language
 #[derive(Debug, PartialEq, Eq)]
 pub enum Reserved {
-    Let,
     Func,
     Int,
-    Uint,
     Float,
     String,
     Return,
@@ -69,6 +62,10 @@ pub enum TokenType {
     // +
     Plus,
 
+    // Plus plus symbol
+    // ++
+    PlusPlus,
+
     // Semicolon
     // ;
     Semicolon,
@@ -81,6 +78,10 @@ pub enum TokenType {
     // /
     Slash,
 
+    // Modulo operator
+    // %
+    Modulo,
+
     // Compare operatoros
     // ==
     CompareOperator(CompareOp),
@@ -91,15 +92,11 @@ pub enum TokenType {
 
     // An integer numeral literal
     // 42
-    Numeral(Integer),
-
-    // A decimal numeral literal
-    // 8.1853527
-    Decimal(Rational),
+    Number(Numeral),
 
     // A boolean literal
     // True, False
-    Bool(bool),
+    Bool,
 
     // A string literal
     // "Hello world"
@@ -114,14 +111,20 @@ pub enum TokenType {
     // A reversed word
     ReservedWord(Reserved),
 
-    // Represents end of input
-    Eof,
-
     // Represents a white space
     Whitespace,
 
     // Newline
+    // \n
     Newline,
+
+    // Tab
+    // \t
+    Tab,
+
+    // Arrow
+    // ->
+    Arrow,
 }
 
 #[derive(Debug)]

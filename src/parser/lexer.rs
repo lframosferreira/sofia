@@ -4,10 +4,8 @@ use crate::parser::token::{CompareOp, Reserved, Token, TokenType};
 
 fn check_reserved_word(buffer: &String) -> Option<Reserved> {
     match buffer.as_str() {
-        "let" => Some(Reserved::Let),
         "func" => Some(Reserved::Func),
         "int" => Some(Reserved::Int),
-        "uint" => Some(Reserved::Uint),
         "float" => Some(Reserved::Float),
         "string" => Some(Reserved::String),
         "return" => Some(Reserved::Return),
@@ -80,13 +78,11 @@ fn check_single_char_token(content: &[u8], i: usize) -> Option<TokenType> {
         b'*' => Some(TokenType::Asterisk),
         b'/' => Some(TokenType::Slash),
         b',' => Some(TokenType::Comma),
+        b'%' => Some(TokenType::Modulo),
         b'\n' => Some(TokenType::Newline),
+        b'\t' => Some(TokenType::Tab),
         _ => None,
     }
-}
-
-fn check_number(content: &[u8], i: usize) -> Option<TokenType> {
-    None
 }
 
 fn check_string(content: &[u8], idx: usize) -> Option<String> {
@@ -117,6 +113,13 @@ fn check_string(content: &[u8], idx: usize) -> Option<String> {
         }
     }
 }
+fn check_bool_literal(buffer: &String) -> bool {
+    match buffer.as_str() {
+        "True" => true,
+        "False" => true,
+        _ => false,
+    }
+}
 
 pub fn tokenize(content: &[u8]) -> Vec<Token> {
     let mut tokens: Vec<Token> = vec![];
@@ -124,15 +127,28 @@ pub fn tokenize(content: &[u8]) -> Vec<Token> {
     let mut i: usize = 0;
     while i < content.len() {
         let mut c = content[i];
-
         // first we check for single char tokens and get rid of them as soon as they are seen
         if let Some(single_char_token) = check_single_char_token(&content, i) {
             tokens.push(Token {
                 _type: single_char_token,
-                value: Some(String::from(c as char)),
+                value: None,
             });
             i += 1;
             continue;
+        }
+
+        // we now check for the fucking arrow
+        if c == b'-' {
+            if i + 1 >= content.len() || content[i + 1] != b'>' {
+                eprintln!("- should have > after it to form the arrow operator");
+                exit(1);
+            } else {
+                i += 2;
+                tokens.push(Token {
+                    _type: TokenType::Arrow,
+                    value: None,
+                })
+            }
         }
 
         // we then check for compare operators
@@ -162,7 +178,7 @@ pub fn tokenize(content: &[u8]) -> Vec<Token> {
         }
 
         // here we found a reserved word or a identifier, and we check it
-        if c.is_ascii_alphabetic() {
+        if c.is_ascii_alphabetic() || c == b'_' {
             buffer.push(c as char);
             i += 1;
             if i >= content.len() {
@@ -170,7 +186,7 @@ pub fn tokenize(content: &[u8]) -> Vec<Token> {
                 return tokens;
             }
             c = content[i];
-            while c.is_ascii_alphanumeric() {
+            while c.is_ascii_alphanumeric() || c == b'_' {
                 buffer.push(c as char);
                 i += 1;
                 if i >= content.len() {
@@ -185,6 +201,11 @@ pub fn tokenize(content: &[u8]) -> Vec<Token> {
                     _type: TokenType::ReservedWord(reserved),
                     value: Some(buffer.clone()),
                 });
+            } else if check_bool_literal(&buffer) {
+                tokens.push(Token {
+                    _type: TokenType::Bool,
+                    value: Some(buffer.clone()),
+                });
             } else {
                 tokens.push(Token {
                     _type: TokenType::Identifier,
@@ -196,25 +217,56 @@ pub fn tokenize(content: &[u8]) -> Vec<Token> {
         }
 
         // finnally we check for numbers
-        if c.is_numeric() {
-            buffer.push(c);
+        if c.is_ascii_digit() {
+            buffer.push(c as char);
             i += 1;
-            while i < content.len() && c.is_numeric(){
-                c=content[i];
-                buffer.push(c);
-                i+=1;
+            while i < content.len() && content[i].is_ascii_digit() {
+                c = content[i];
+                buffer.push(c as char);
+                i += 1;
             }
             if i >= content.len() {
-                // add token and finish the function
+                tokens.push(Token {
+                    _type: TokenType::Number(super::token::Numeral::Int64),
+                    value: Some(buffer.clone()),
+                });
                 return tokens;
             }
             c = content[i];
             if c == b'.' {
-                
-            }else if c == b' ' {
-               tokens.push(Token{_type: TokenType::Rational}); 
+                buffer.push(c as char);
+                i += 1;
+                while i < content.len() && content[i].is_ascii_digit() {
+                    c = content[i];
+                    buffer.push(c as char);
+                    i += 1;
+                }
+                if i < content.len()
+                    && content[i] != b' '
+                    && content[i] != b';'
+                    && content[i] != b')'
+                {
+                    eprintln!(
+                        "Numbers should contains only digits and, in case of floats, a single ."
+                    );
+                    exit(1);
+                } else {
+                    tokens.push(Token {
+                        _type: TokenType::Number(super::token::Numeral::Float64),
+                        value: Some(buffer.clone()),
+                    });
+                }
+            } else if c == b' ' || c == b';' || c == b')' {
+                tokens.push(Token {
+                    _type: TokenType::Number(super::token::Numeral::Int64),
+                    value: Some(buffer.clone()),
+                });
+            } else {
+                eprintln!(
+                    "Numbers should contains only digits and, in case of floats, a single . 2"
+                );
+                exit(1);
             }
-            
         }
     }
     tokens

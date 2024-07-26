@@ -1,3 +1,3 @@
-func say_hi_to(string name){
+func say_hi_to(string name) -> None {
 	print("hi " + name + "\n");
 }

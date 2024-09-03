@@ -4,7 +4,4 @@ Sofia is a interpreted procedural programming language that takes a lot of inspi
 
 Some examples of Sofia programs can be seen in the `examples` directory.
 
-This project is heavily inspired by other implementations of interpreters and compilers, such as:
-
-    - [Carcara](https://github.com/ufmg-smite/carcara)
-    - [Hydrogen](https://www.youtube.com/watch?v=vcSijrRsrY0&t=1444s)
+This project is heavily inspired by other implementations of interpreters and compilers, such as [Carcara](https://github.com/ufmg-smite/carcara) and [Hydrogen](https://www.youtube.com/watch?v=vcSijrRsrY0&t=1444s)

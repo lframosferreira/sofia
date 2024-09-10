@@ -6,6 +6,8 @@ Some examples of Sofia programs can be seen in the `examples` directory.
 
 This project is heavily inspired by other implementations of interpreters and compilers, such as [Carcara](https://github.com/ufmg-smite/carcara) and [Hydrogen](https://www.youtube.com/watch?v=vcSijrRsrY0&t=1444s)
 
+I used a lot from the Crafting Interpreters book.
+
 [Code Project](https://www.youtube.com/watch?v=2ISArhs6fwk) series also helped me a lot while creating this project.
 
 ## About

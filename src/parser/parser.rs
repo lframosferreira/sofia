@@ -1,18 +1,28 @@
 use crate::parser::token::Token;
 
+use super::token::{BinaryOp, CompareOp, TokenType};
+
 pub struct Parser {
     tokens: Vec<Token>,
     index: usize,
 }
 
+// we are brute forcing the token type for operators here, but this is njot always the case, if
+// should fiz this
+#[derive(Debug)]
 pub enum Expr {
-    T,
-}
-
-pub enum Node {
-    Litheral { value: Token },
-    UnaryExpr { child: Box<Node> },
-    BinaryExpr { lhs: Box<Node>, rhs: Box<Node> },
+    Litheral {
+        value: Token,
+    },
+    UnaryExpr {
+        op: Token,
+        child: Box<Expr>,
+    },
+    BinaryExpr {
+        op: Token,
+        lhs: Box<Expr>,
+        rhs: Box<Expr>,
+    },
 }
 
 impl Parser {
@@ -23,20 +33,70 @@ impl Parser {
         }
     }
 
-    pub fn peek(&mut self) -> Option<&Token> {
+    pub fn peek(&self) -> Option<&Token> {
         if self.index >= self.tokens.len() {
             return None;
         }
         Some(&self.tokens[self.index])
     }
 
-    pub fn consume(&mut self) -> &Token {
+    // AKA consume
+    pub fn advance(&mut self) -> &Token {
         let ret = &self.tokens[self.index];
         self.index += 1;
         &ret
     }
 
-    pub fn parse(&self) -> Option<u32> {
-        None
+    pub fn previous(&self) -> &Token {
+        &self.tokens[self.index - 1]
+    }
+
+    pub fn comparison(&self) -> Expr {
+        Expr::Litheral {
+            value: Token::new(TokenType::Arrow, None),
+        }
+    }
+
+    pub fn check(&self, token_type: &TokenType) -> bool {
+        if let Some(token) = self.peek() {
+            return token._type == *token_type;
+        }
+        false
+    }
+
+    pub fn match_up(&mut self, token_types: Vec<TokenType>) -> bool {
+        for token_type in token_types {
+            if self.check(&token_type) {
+                self.advance();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // I should porbably use a macro here in the vec! parameter
+    pub fn equality(&mut self) -> Expr {
+        let mut expr = self.comparison();
+        let bang_equal = TokenType::BinaryOperator(BinaryOp::CompareOperator(CompareOp::BangEqual));
+        let equal_equal =
+            TokenType::BinaryOperator(BinaryOp::CompareOperator(CompareOp::EqualEqual));
+        while self.match_up(vec![bang_equal.clone(), equal_equal.clone()]) {
+            let operator = self.previous();
+            let rhs = self.comparison();
+            expr = Expr::BinaryExpr {
+                op: operator.clone(),
+                lhs: Box::new(expr),
+                rhs: Box::new(rhs),
+            };
+        }
+        return expr;
+    }
+
+    pub fn expression(&mut self) -> Expr {
+        self.equality()
+    }
+
+    pub fn parse(&mut self) -> Expr {
+        self.expression()
     }
 }

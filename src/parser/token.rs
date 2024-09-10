@@ -1,11 +1,11 @@
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Numeral {
     Int64,
     Float64,
 }
 
 // A reserved word in the Sofia language
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Clone, Eq)]
 pub enum Reserved {
     Func,
     Int,
@@ -69,7 +69,7 @@ pub enum BinaryOp {
 }
 
 // A token type in the Sofia language
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TokenType {
     // Left parenthesis
     // (
@@ -131,14 +131,14 @@ pub enum TokenType {
     Arrow,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Token {
     pub _type: TokenType,
     pub value: Option<String>,
 }
 
 impl Token {
-    fn new(_type: TokenType, value: Option<String>) -> Token {
+    pub fn new(_type: TokenType, value: Option<String>) -> Token {
         Token { _type, value }
     }
 }

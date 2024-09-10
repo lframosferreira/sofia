@@ -22,8 +22,9 @@ input file",
     //     println!("{:?}", token);
     // }
 
-    let parser_object = Parser::new(tokens);
+    let mut parser_object = Parser::new(tokens);
     let tree = parser_object.parse();
+    println!("{:?}", tree);
 
     Ok(())
 }

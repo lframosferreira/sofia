@@ -1,4 +1,3 @@
-mod ast;
 mod parser;
 use std::process::exit;
 

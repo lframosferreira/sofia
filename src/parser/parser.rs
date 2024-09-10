@@ -51,12 +51,6 @@ impl Parser {
         &self.tokens[self.index - 1]
     }
 
-    pub fn comparison(&self) -> Expr {
-        Expr::Litheral {
-            value: Token::new(TokenType::Arrow, None),
-        }
-    }
-
     pub fn check(&self, token_type: &TokenType) -> bool {
         if let Some(token) = self.peek() {
             return token._type == *token_type;
@@ -74,6 +68,22 @@ impl Parser {
         return false;
     }
 
+    pub fn term(&self) -> Expr {}
+
+    pub fn comparison(&self) -> Expr {
+        let mut expr = self.term();
+        while self.match_up(vec![]) {
+            let operator = self.previous();
+            let rhs = self.term();
+            expr = Expr::BinaryExpr {
+                op: operator.clone(),
+                lhs: Box::new(expr),
+                rhs: Box::new(rhs),
+            }
+        }
+        expr
+    }
+
     // I should porbably use a macro here in the vec! parameter
     pub fn equality(&mut self) -> Expr {
         let mut expr = self.comparison();
@@ -89,7 +99,7 @@ impl Parser {
                 rhs: Box::new(rhs),
             };
         }
-        return expr;
+        expr
     }
 
     pub fn expression(&mut self) -> Expr {

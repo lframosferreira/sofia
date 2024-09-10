@@ -148,6 +148,7 @@ pub fn tokenize(content: &[u8]) -> Vec<Token> {
         }
 
         // we now check for the fucking arrow
+        // I REMOVED THE ARROW
         if c == b'-' {
             if i + 1 >= content.len() || content[i + 1] != b'>' {
                 eprintln!("- should have > after it to form the arrow operator");
@@ -171,7 +172,7 @@ pub fn tokenize(content: &[u8]) -> Vec<Token> {
             };
             tokens.push(Token {
                 _type: TokenType::BinaryOperator(BinaryOp::CompareOperator(compare_op)),
-                value: Some(String::from(c as char)),
+                value: None,
             });
             i += increment;
             continue;
@@ -209,7 +210,7 @@ pub fn tokenize(content: &[u8]) -> Vec<Token> {
             if let Some(reserved) = check_reserved_word(&buffer) {
                 tokens.push(Token {
                     _type: TokenType::ReservedWord(reserved),
-                    value: Some(buffer.clone()),
+                    value: None, 
                 });
             } else if check_bool_literal(&buffer) {
                 tokens.push(Token {
@@ -240,6 +241,7 @@ pub fn tokenize(content: &[u8]) -> Vec<Token> {
                     _type: TokenType::Number(super::token::Numeral::Int64),
                     value: Some(buffer.clone()),
                 });
+                buffer.clear();
                 return tokens;
             }
             c = content[i];
@@ -273,10 +275,11 @@ pub fn tokenize(content: &[u8]) -> Vec<Token> {
                 });
             } else {
                 eprintln!(
-                    "Numbers should contains only digits and, in case of floats, a single . 2"
+                    "Numbers should contains only digits and, in case of floats, a single ."
                 );
                 exit(1);
             }
+            buffer.clear();
         }
     }
     tokens

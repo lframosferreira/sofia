@@ -1,6 +1,6 @@
 use std::process::exit;
 
-use crate::parser::token::{CompareOp, Reserved, Token, TokenType};
+use crate::parser::token::{ArithmeticOp, BinaryOp, CompareOp, Reserved, Token, TokenType};
 
 fn check_reserved_word(buffer: &String) -> Option<Reserved> {
     match buffer.as_str() {
@@ -73,12 +73,22 @@ fn check_single_char_token(content: &[u8], i: usize) -> Option<TokenType> {
         b'}' => Some(TokenType::RightCurlyBracket),
         b'(' => Some(TokenType::LeftParen),
         b')' => Some(TokenType::RightParen),
-        b'+' => Some(TokenType::Plus),
-        b'-' => Some(TokenType::Minus),
-        b'*' => Some(TokenType::Asterisk),
-        b'/' => Some(TokenType::Slash),
+        b'+' => Some(TokenType::BinaryOperator(BinaryOp::ArithmeticOperator(
+            ArithmeticOp::Plus,
+        ))),
+        b'-' => Some(TokenType::BinaryOperator(BinaryOp::ArithmeticOperator(
+            ArithmeticOp::Minus,
+        ))),
+        b'*' => Some(TokenType::BinaryOperator(BinaryOp::ArithmeticOperator(
+            ArithmeticOp::Asterisk,
+        ))),
+        b'/' => Some(TokenType::BinaryOperator(BinaryOp::ArithmeticOperator(
+            ArithmeticOp::Slash,
+        ))),
+        b'%' => Some(TokenType::BinaryOperator(BinaryOp::ArithmeticOperator(
+            ArithmeticOp::Modulo,
+        ))),
         b',' => Some(TokenType::Comma),
-        b'%' => Some(TokenType::Modulo),
         b'\n' => Some(TokenType::Newline),
         b'\t' => Some(TokenType::Tab),
         _ => None,
@@ -160,7 +170,7 @@ pub fn tokenize(content: &[u8]) -> Vec<Token> {
                 _ => 2,
             };
             tokens.push(Token {
-                _type: TokenType::CompareOperator(compare_op),
+                _type: TokenType::BinaryOperator(BinaryOp::CompareOperator(compare_op)),
                 value: Some(String::from(c as char)),
             });
             i += increment;

@@ -39,6 +39,35 @@ pub enum CompareOp {
     LessEqual,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ArithmeticOp {
+    // Asterisk
+    // *
+    Asterisk,
+
+    // Slash
+    // /
+    Slash,
+
+    // Modulo operator
+    // %
+    Modulo,
+
+    // Minus symbol
+    // -
+    Minus,
+
+    // Plus symbol
+    // +
+    Plus,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum BinaryOp {
+    CompareOperator(CompareOp),
+    ArithmeticOperator(ArithmeticOp),
+}
+
 // A token type in the Sofia language
 #[derive(Debug, PartialEq)]
 pub enum TokenType {
@@ -54,37 +83,12 @@ pub enum TokenType {
     // ,
     Comma,
 
-    // Minus symbol
-    // -
-    Minus,
-
-    // Plus symbol
-    // +
-    Plus,
-
-    // Plus plus symbol
-    // ++
-    PlusPlus,
-
     // Semicolon
     // ;
     Semicolon,
 
-    // Asterisk
-    // *
-    Asterisk,
-
-    // Slash
-    // /
-    Slash,
-
-    // Modulo operator
-    // %
-    Modulo,
-
-    // Compare operatoros
-    // ==
-    CompareOperator(CompareOp),
+    // A binary operator, such as arithmetic operators like '+' and compare operators like '='
+    BinaryOperator(BinaryOp),
 
     // An identifier for a variable/function
     // x, sum

@@ -2,7 +2,6 @@ mod ast;
 mod parser;
 use std::process::exit;
 
-use ast::ast;
 use parser::lexer::tokenize;
 use std::env;
 

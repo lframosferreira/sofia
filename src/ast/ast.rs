@@ -1,5 +1,9 @@
-use crate::parser::token::*;
+use crate::parser::token::BinaryOp;
 
 pub enum Node {
-    UnaryExpr{op: CompareOperator, lhs: Box<Node>}
+    BinaryExpr {
+        op: BinaryOp,
+        lhs: Box<Node>,
+        rhs: Box<Node>,
+    },
 }

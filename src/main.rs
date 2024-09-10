@@ -2,6 +2,7 @@ mod parser;
 use std::process::exit;
 
 use parser::lexer::tokenize;
+use parser::parser::Parser;
 use std::env;
 
 fn main() -> std::io::Result<()> {
@@ -17,9 +18,12 @@ input file",
 
     let tokens = tokenize(content.as_bytes());
 
-    for token in tokens {
-        println!("{:?}", token);
-    }
+    // for token in tokens {
+    //     println!("{:?}", token);
+    // }
+
+    let parser_object = Parser::new(tokens);
+    let tree = parser_object.parse();
 
     Ok(())
 }

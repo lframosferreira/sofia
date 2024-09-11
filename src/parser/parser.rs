@@ -49,11 +49,22 @@ pub enum Declaration {
 
 #[derive(Debug, Clone)]
 pub enum Statement {
-    ExprStatement { expr: Box<Expr> },
-    PrintStatement { expr: Box<Expr> },
+    ExprStatement {
+        expr: Box<Expr>,
+    },
+    PrintStatement {
+        expr: Box<Expr>,
+    },
+    IfStatement {
+        expr: Box<Expr>,
+        stmt: Box<Statement>,
+        else_stmt: Option<Box<Statement>>,
+    },
     Declaration(Declaration),
     // 0 or more declarations inside a {}
-    Block { statements: Vec<Statement> },
+    Block {
+        statements: Vec<Statement>,
+    },
 }
 
 impl Parser {
@@ -275,6 +286,25 @@ impl Parser {
         statements
     }
 
+    pub fn if_statement(&mut self) -> Statement {
+        self.consume(TokenType::LeftParen, "expect '(' after if");
+        let condition = self.expression();
+        self.consume(TokenType::RightParen, "expect')' after if condition");
+        let then_branch = self.statement();
+        let mut else_branch: Option<Statement> = None;
+        if self.match_up(vec![TokenType::ReservedWord(Reserved::Else)]) {
+            else_branch = Some(self.statement());
+        }
+        Statement::IfStatement {
+            expr: Box::new(condition),
+            stmt: Box::new(then_branch),
+            else_stmt: match else_branch {
+                Some(val) => Some(Box::new(val)),
+                None => None,
+            },
+        }
+    }
+
     pub fn statement(&mut self) -> Statement {
         if self.match_up(vec![TokenType::ReservedWord(Reserved::Print)]) {
             return self.print_statement();
@@ -282,6 +312,8 @@ impl Parser {
             return Statement::Block {
                 statements: self.block(),
             };
+        } else if self.match_up(vec![TokenType::ReservedWord(Reserved::If)]) {
+            return self.if_statement();
         } else {
             return self.expr_statement();
         }

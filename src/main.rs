@@ -1,3 +1,4 @@
+#![allow(warnings)]
 mod parser;
 use std::process::exit;
 

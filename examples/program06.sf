@@ -1,1 +1,7 @@
-x == y
+let b1 = True;
+let b2 = False;
+if (b1 and b2){
+    print("verdadeiro\n");
+}else{
+    print("falso\n");
+}

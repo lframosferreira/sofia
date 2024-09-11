@@ -26,6 +26,11 @@ pub enum Expr {
     Variable {
         value: Token,
     },
+    Logical {
+        op: Token,
+        lhs: Box<Expr>,
+        rhs: Box<Expr>,
+    },
     Assign {
         name: Token,
         value: Box<Expr>,
@@ -238,8 +243,37 @@ impl Parser {
         expr
     }
 
+    pub fn and(&mut self) -> Expr {
+        let mut expr = self.equality();
+        while self.match_up(vec![TokenType::ReservedWord(Reserved::And)]) {
+            let operator = self.previous();
+            let rhs = self.equality();
+            expr = Expr::Logical {
+                op: operator.clone(),
+                lhs: Box::new(expr),
+                rhs: Box::new(rhs),
+            }
+        }
+        expr
+    }
+
+    pub fn or(&mut self) -> Expr {
+        let mut expr = self.and();
+
+        while self.match_up(vec![TokenType::ReservedWord(Reserved::Or)]) {
+            let operator = self.previous();
+            let rhs = self.and();
+            expr = Expr::Logical {
+                op: operator.clone(),
+                lhs: Box::new(expr),
+                rhs: Box::new(rhs),
+            }
+        }
+        expr
+    }
+
     pub fn assignment(&mut self) -> Expr {
-        let expr = self.equality();
+        let expr = self.or();
         if self.match_up(vec![TokenType::BinaryOperator(BinaryOp::CompareOperator(
             CompareOp::Equal,
         ))]) {

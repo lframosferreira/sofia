@@ -29,10 +29,22 @@ pub enum Expr {
     },
 }
 
+#[derive(Debug, Clone)]
+pub enum Statement {
+    ExprStatement { expr: Box<Expr> },
+    PrintStatement { expr: Box<Expr> },
+}
+
+#[derive(Debug, Clone)]
+pub enum Declaration {
+    VariableDeclaration,
+    StatementDeclaration,
+}
+
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Self {
         Parser {
-            tokens: tokens,
+            tokens: tokens.clone(),
             index: 0,
         }
     }
@@ -139,6 +151,9 @@ impl Parser {
     }
 
     pub fn term(&mut self) -> Expr {
+        dbg!(statements.clone());
+        dbg!(self.index);
+        dbg!(self.tokens.clone());
         let mut expr = self.factor();
         let minus = TokenType::BinaryOperator(BinaryOp::ArithmeticOperator(ArithmeticOp::Minus));
         let plus = TokenType::BinaryOperator(BinaryOp::ArithmeticOperator(ArithmeticOp::Plus));
@@ -201,7 +216,44 @@ impl Parser {
         self.equality()
     }
 
-    pub fn parse(&mut self) -> Expr {
-        self.expression()
+    pub fn print_statement(&mut self) -> Statement {
+        let expr = self.expression(); // here we are accepting any kind of expression but it should
+                                      // be only groupings
+        self.consume(TokenType::Semicolon, "expect ';' after value");
+        Statement::PrintStatement {
+            expr: Box::new(expr),
+        }
+    }
+
+    pub fn expr_statement(&mut self) -> Statement {
+        let expr = self.expression();
+        self.consume(TokenType::Semicolon, "expect ';' after value");
+        Statement::ExprStatement {
+            expr: Box::new(expr),
+        }
+    }
+
+    pub fn statement(&mut self) -> Statement {
+        if self.match_up(vec![TokenType::ReservedWord(Reserved::Print)]) {
+            return self.print_statement();
+        } else {
+            return self.expr_statement();
+        }
+    }
+
+    pub fn is_at_end(&self) -> bool {
+        if let Some(_) = self.peek() {
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    pub fn parse(&mut self) -> Vec<Statement> {
+        let mut statements: Vec<Statement> = vec![];
+        while !self.is_at_end() {
+            statements.push(self.statement());
+        }
+        statements
     }
 }

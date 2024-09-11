@@ -19,6 +19,7 @@ pub enum Reserved {
     Not,
     While,
     For,
+    Print,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

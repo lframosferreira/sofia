@@ -16,6 +16,7 @@ fn check_reserved_word(buffer: &String) -> Option<Reserved> {
         "not" => Some(Reserved::Not),
         "while" => Some(Reserved::While),
         "for" => Some(Reserved::For),
+        "print" => Some(Reserved::Print),
         _ => None,
     }
 }
@@ -89,8 +90,8 @@ fn check_single_char_token(content: &[u8], i: usize) -> Option<TokenType> {
             ArithmeticOp::Modulo,
         ))),
         b',' => Some(TokenType::Comma),
-        b'\n' => Some(TokenType::Newline),
         b'\t' => Some(TokenType::Tab),
+        b'\n' => Some(TokenType::Newline),
         _ => None,
     }
 }
@@ -139,11 +140,15 @@ pub fn tokenize(content: &[u8]) -> Vec<Token> {
         let mut c = content[i];
         // first we check for single char tokens and get rid of them as soon as they are seen
         if let Some(single_char_token) = check_single_char_token(&content, i) {
+            i += 1;
+            // for now we are ignoring tabs and new lines
+            if single_char_token == TokenType::Newline || single_char_token == TokenType::Tab {
+                continue;
+            }
             tokens.push(Token {
                 _type: single_char_token,
                 value: None,
             });
-            i += 1;
             continue;
         }
 
@@ -210,7 +215,7 @@ pub fn tokenize(content: &[u8]) -> Vec<Token> {
             if let Some(reserved) = check_reserved_word(&buffer) {
                 tokens.push(Token {
                     _type: TokenType::ReservedWord(reserved),
-                    value: None, 
+                    value: None,
                 });
             } else if check_bool_literal(&buffer) {
                 tokens.push(Token {
@@ -274,9 +279,7 @@ pub fn tokenize(content: &[u8]) -> Vec<Token> {
                     value: Some(buffer.clone()),
                 });
             } else {
-                eprintln!(
-                    "Numbers should contains only digits and, in case of floats, a single ."
-                );
+                eprintln!("Numbers should contains only digits and, in case of floats, a single .");
                 exit(1);
             }
             buffer.clear();

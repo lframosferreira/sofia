@@ -65,6 +65,10 @@ pub enum Statement {
         stmt: Box<Statement>,
         else_stmt: Option<Box<Statement>>,
     },
+    WhileStatement {
+        expr: Box<Expr>,
+        stmt: Box<Statement>,
+    },
     Declaration(Declaration),
     // 0 or more declarations inside a {}
     Block {

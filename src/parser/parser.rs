@@ -23,6 +23,9 @@ pub enum Expr {
         lhs: Box<Expr>,
         rhs: Box<Expr>,
     },
+    Variable {
+        value: Token,
+    },
     // "(" middle ")"
     Grouping {
         middle: Box<Expr>,
@@ -30,15 +33,21 @@ pub enum Expr {
 }
 
 #[derive(Debug, Clone)]
-pub enum Statement {
-    ExprStatement { expr: Box<Expr> },
-    PrintStatement { expr: Box<Expr> },
+pub enum Declaration {
+    VariableDeclaration {
+        name: Token,
+        initializer_expr: Box<Expr>,
+    },
+    StatementDeclaration {
+        name: String,
+    },
 }
 
 #[derive(Debug, Clone)]
-pub enum Declaration {
-    VariableDeclaration,
-    StatementDeclaration,
+pub enum Statement {
+    ExprStatement { expr: Box<Expr> },
+    PrintStatement { expr: Box<Expr> },
+    Declaration(Declaration),
 }
 
 impl Parser {
@@ -101,9 +110,13 @@ impl Parser {
             TokenType::Number(Numeral::Int64),
             TokenType::Number(Numeral::Float64),
             TokenType::String,
-            TokenType::Identifier,
         ]) {
             return Expr::Litheral {
+                value: self.previous(),
+            };
+        }
+        if self.match_up(vec![TokenType::Identifier]) {
+            return Expr::Variable {
                 value: self.previous(),
             };
         }
@@ -151,9 +164,6 @@ impl Parser {
     }
 
     pub fn term(&mut self) -> Expr {
-        dbg!(statements.clone());
-        dbg!(self.index);
-        dbg!(self.tokens.clone());
         let mut expr = self.factor();
         let minus = TokenType::BinaryOperator(BinaryOp::ArithmeticOperator(ArithmeticOp::Minus));
         let plus = TokenType::BinaryOperator(BinaryOp::ArithmeticOperator(ArithmeticOp::Plus));
@@ -241,6 +251,29 @@ impl Parser {
         }
     }
 
+    pub fn variable_declaration(&mut self) -> Statement {
+        let name = self.consume(TokenType::Identifier, "expect variable name.");
+        let mut initializer: Option<Expr> = None;
+        if self.match_up(vec![TokenType::BinaryOperator(BinaryOp::CompareOperator(
+            CompareOp::Equal,
+        ))]) {
+            initializer = Some(self.expression());
+        }
+        self.consume(TokenType::Semicolon, "expect ';' after var declaration.");
+        Statement::Declaration(Declaration::VariableDeclaration {
+            name: name.clone(),
+            initializer_expr: Box::new(initializer.unwrap()),
+        })
+    }
+
+    pub fn declaration(&mut self) -> Statement {
+        if self.match_up(vec![TokenType::ReservedWord(Reserved::Let)]) {
+            return self.variable_declaration();
+        } else {
+            return self.statement();
+        }
+    }
+
     pub fn is_at_end(&self) -> bool {
         if let Some(_) = self.peek() {
             return false;
@@ -252,7 +285,7 @@ impl Parser {
     pub fn parse(&mut self) -> Vec<Statement> {
         let mut statements: Vec<Statement> = vec![];
         while !self.is_at_end() {
-            statements.push(self.statement());
+            statements.push(self.declaration());
         }
         statements
     }

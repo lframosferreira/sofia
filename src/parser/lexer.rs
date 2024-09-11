@@ -8,6 +8,7 @@ fn check_reserved_word(buffer: &String) -> Option<Reserved> {
         "int" => Some(Reserved::Int),
         "float" => Some(Reserved::Float),
         "string" => Some(Reserved::String),
+        "let" => Some(Reserved::Let),
         "return" => Some(Reserved::Return),
         "if" => Some(Reserved::If),
         "else" => Some(Reserved::Else),
@@ -141,8 +142,11 @@ pub fn tokenize(content: &[u8]) -> Vec<Token> {
         // first we check for single char tokens and get rid of them as soon as they are seen
         if let Some(single_char_token) = check_single_char_token(&content, i) {
             i += 1;
-            // for now we are ignoring tabs and new lines
-            if single_char_token == TokenType::Newline || single_char_token == TokenType::Tab {
+            // for now we are ignoring tabs and new lines and blank spaces
+            if single_char_token == TokenType::Newline
+                || single_char_token == TokenType::Tab
+                || single_char_token == TokenType::Whitespace
+            {
                 continue;
             }
             tokens.push(Token {

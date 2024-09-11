@@ -14,6 +14,7 @@ pub enum Reserved {
     Return,
     If,
     Else,
+    Let,
     And,
     Or,
     Not,

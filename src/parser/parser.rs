@@ -69,6 +69,9 @@ pub enum Statement {
         expr: Box<Expr>,
         stmt: Box<Statement>,
     },
+    ForStatement {
+        initializer: Box<Expr>,
+    },
     Declaration(Declaration),
     // 0 or more declarations inside a {}
     Block {
@@ -307,6 +310,29 @@ impl Parser {
         }
     }
 
+    pub fn variable_declaration(&mut self) -> Statement {
+        let name = self.consume(TokenType::Identifier, "expect variable name.");
+        let mut initializer: Option<Expr> = None;
+        if self.match_up(vec![TokenType::BinaryOperator(BinaryOp::CompareOperator(
+            CompareOp::Equal,
+        ))]) {
+            initializer = Some(self.expression());
+        }
+        self.consume(TokenType::Semicolon, "expect ';' after var declaration.");
+        Statement::Declaration(Declaration::VariableDeclaration {
+            name: name.clone(),
+            initializer_expr: Box::new(initializer.unwrap()),
+        })
+    }
+
+    pub fn declaration(&mut self) -> Statement {
+        if self.match_up(vec![TokenType::ReservedWord(Reserved::Let)]) {
+            return self.variable_declaration();
+        } else {
+            return self.statement();
+        }
+    }
+
     pub fn expr_statement(&mut self) -> Statement {
         let expr = self.expression();
         self.consume(TokenType::Semicolon, "expect ';' after value");
@@ -343,6 +369,66 @@ impl Parser {
         }
     }
 
+    pub fn while_statement(&mut self) -> Statement {
+        self.consume(TokenType::LeftParen, "expect '(' after while");
+        let condition = self.expression();
+        self.consume(TokenType::RightParen, "expect ')' after condition");
+        let body = self.statement();
+        Statement::WhileStatement {
+            expr: Box::new(condition),
+            stmt: Box::new(body),
+        }
+    }
+
+    pub fn for_statement(&mut self) -> Statement {
+        self.consume(TokenType::LeftParen, "expect '(' after for");
+        let mut initializer: Option<Statement> = None;
+        if self.match_up(vec![TokenType::Semicolon]) {
+            initializer = None;
+        } else if self.match_up(vec![TokenType::ReservedWord(Reserved::Let)]) {
+            initializer = Some(self.variable_declaration());
+        } else {
+            initializer = Some(self.expr_statement());
+        }
+
+        let mut condition: Option<Expr> = None;
+        if !self.check(&TokenType::Semicolon) {
+            condition = Some(self.expression());
+        }
+        self.consume(TokenType::Semicolon, "expect ';' after loop condition");
+        let mut increment: Option<Expr> = None;
+        if !self.check(&TokenType::RightParen) {
+            increment = Some(self.expression());
+        }
+        self.consume(TokenType::RightParen, "expect ')'afterfor clauses");
+        let mut body = self.statement();
+        if let Some(inc) = increment {
+            body = Statement::Block {
+                statements: vec![
+                    body,
+                    Statement::ExprStatement {
+                        expr: Box::new(inc),
+                    },
+                ],
+            }
+        }
+        if condition.is_none() {
+            condition = Some(Expr::Litheral {
+                value: Token::new(TokenType::Bool, Some("True".to_string())),
+            });
+            body = Statement::WhileStatement {
+                expr: Box::new(condition.unwrap()),
+                stmt: Box::new(body),
+            };
+        }
+        if let Some(init) = initializer {
+            body = Statement::Block {
+                statements: vec![init, body],
+            }
+        }
+        body
+    }
+
     pub fn statement(&mut self) -> Statement {
         if self.match_up(vec![TokenType::ReservedWord(Reserved::Print)]) {
             return self.print_statement();
@@ -352,31 +438,12 @@ impl Parser {
             };
         } else if self.match_up(vec![TokenType::ReservedWord(Reserved::If)]) {
             return self.if_statement();
+        } else if self.match_up(vec![TokenType::ReservedWord(Reserved::While)]) {
+            return self.while_statement();
+        } else if self.match_up(vec![TokenType::ReservedWord(Reserved::For)]) {
+            return self.for_statement();
         } else {
             return self.expr_statement();
-        }
-    }
-
-    pub fn variable_declaration(&mut self) -> Statement {
-        let name = self.consume(TokenType::Identifier, "expect variable name.");
-        let mut initializer: Option<Expr> = None;
-        if self.match_up(vec![TokenType::BinaryOperator(BinaryOp::CompareOperator(
-            CompareOp::Equal,
-        ))]) {
-            initializer = Some(self.expression());
-        }
-        self.consume(TokenType::Semicolon, "expect ';' after var declaration.");
-        Statement::Declaration(Declaration::VariableDeclaration {
-            name: name.clone(),
-            initializer_expr: Box::new(initializer.unwrap()),
-        })
-    }
-
-    pub fn declaration(&mut self) -> Statement {
-        if self.match_up(vec![TokenType::ReservedWord(Reserved::Let)]) {
-            return self.variable_declaration();
-        } else {
-            return self.statement();
         }
     }
 

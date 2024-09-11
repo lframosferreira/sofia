@@ -26,6 +26,10 @@ pub enum Expr {
     Variable {
         value: Token,
     },
+    Assign {
+        name: Token,
+        value: Box<Expr>,
+    },
     // "(" middle ")"
     Grouping {
         middle: Box<Expr>,
@@ -222,8 +226,28 @@ impl Parser {
         expr
     }
 
+    pub fn assignment(&mut self) -> Expr {
+        let expr = self.equality();
+        if self.match_up(vec![TokenType::BinaryOperator(BinaryOp::CompareOperator(
+            CompareOp::Equal,
+        ))]) {
+            let equals = self.previous();
+            let assig_value = self.assignment();
+
+            if let Expr::Variable { value } = expr {
+                dbg!("jkasdljfsdjk");
+                let name = value;
+                return Expr::Assign {
+                    name: name.clone(),
+                    value: Box::new(assig_value),
+                };
+            }
+        }
+        panic!("invalid assignment target"); // should use equals here
+    }
+
     pub fn expression(&mut self) -> Expr {
-        self.equality()
+        self.assignment()
     }
 
     pub fn print_statement(&mut self) -> Statement {

@@ -129,6 +129,9 @@ pub enum TokenType {
     // Arrow
     // ->
     Arrow,
+
+    // Nil
+    Nil,
 }
 
 #[derive(Debug, Clone)]

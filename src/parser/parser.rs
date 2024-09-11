@@ -1,6 +1,6 @@
 use crate::parser::token::Token;
 
-use super::token::{BinaryOp, CompareOp, TokenType};
+use super::token::{ArithmeticOp, BinaryOp, CompareOp, Numeral, Reserved, TokenType};
 
 pub struct Parser {
     tokens: Vec<Token>,
@@ -9,7 +9,7 @@ pub struct Parser {
 
 // we are brute forcing the token type for operators here, but this is njot always the case, if
 // should fiz this
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Expr {
     Litheral {
         value: Token,
@@ -22,6 +22,10 @@ pub enum Expr {
         op: Token,
         lhs: Box<Expr>,
         rhs: Box<Expr>,
+    },
+    // "(" middle ")"
+    Grouping {
+        middle: Box<Expr>,
     },
 }
 
@@ -47,8 +51,15 @@ impl Parser {
         &ret
     }
 
-    pub fn previous(&self) -> &Token {
-        &self.tokens[self.index - 1]
+    pub fn previous(&self) -> Token {
+        self.tokens[self.index - 1].clone()
+    }
+
+    pub fn consume(&mut self, token_type: TokenType, message: &str) -> Token {
+        if self.check(&token_type) {
+            return self.advance().clone();
+        }
+        panic!("{message}")
     }
 
     pub fn check(&self, token_type: &TokenType) -> bool {
@@ -68,11 +79,95 @@ impl Parser {
         return false;
     }
 
-    pub fn term(&self) -> Expr {}
+    pub fn primary(&mut self) -> Expr {
+        if self.match_up(vec![TokenType::Bool]) {
+            return Expr::Litheral {
+                value: self.peek().unwrap().clone(),
+            };
+        }
+        if self.match_up(vec![
+            TokenType::Number(Numeral::Int64),
+            TokenType::Number(Numeral::Float64),
+            TokenType::String,
+            TokenType::Identifier,
+        ]) {
+            return Expr::Litheral {
+                value: self.previous(),
+            };
+        }
+        if self.match_up(vec![TokenType::LeftParen]) {
+            let expr = self.expression();
+            self.consume(TokenType::RightParen, "we need a closeing right paren");
+            return Expr::Grouping {
+                middle: Box::new(expr),
+            };
+        }
+        panic!("Expect expression");
+    }
 
-    pub fn comparison(&self) -> Expr {
+    pub fn unary(&mut self) -> Expr {
+        if self.match_up(vec![
+            TokenType::ReservedWord(Reserved::Not),
+            TokenType::BinaryOperator(BinaryOp::ArithmeticOperator(ArithmeticOp::Minus)),
+        ]) {
+            let operator = self.previous();
+            let rhs = self.unary();
+            return Expr::UnaryExpr {
+                op: operator.clone(),
+                child: Box::new(rhs),
+            };
+        }
+        self.primary()
+    }
+
+    pub fn factor(&mut self) -> Expr {
+        let mut expr = self.unary();
+        let asterisk =
+            TokenType::BinaryOperator(BinaryOp::ArithmeticOperator(ArithmeticOp::Asterisk));
+        let slash = TokenType::BinaryOperator(BinaryOp::ArithmeticOperator(ArithmeticOp::Slash));
+        let modulo = TokenType::BinaryOperator(BinaryOp::ArithmeticOperator(ArithmeticOp::Modulo));
+        while self.match_up(vec![asterisk.clone(), slash.clone(), modulo.clone()]) {
+            let operator = self.previous();
+            let rhs = self.unary();
+            expr = Expr::BinaryExpr {
+                op: operator.clone(),
+                lhs: Box::new(expr),
+                rhs: Box::new(rhs),
+            }
+        }
+        expr
+    }
+
+    pub fn term(&mut self) -> Expr {
+        let mut expr = self.factor();
+        let minus = TokenType::BinaryOperator(BinaryOp::ArithmeticOperator(ArithmeticOp::Minus));
+        let plus = TokenType::BinaryOperator(BinaryOp::ArithmeticOperator(ArithmeticOp::Plus));
+        while self.match_up(vec![minus.clone(), plus.clone()]) {
+            let operator = self.previous();
+            let rhs = self.factor();
+            expr = Expr::BinaryExpr {
+                op: operator.clone(),
+                lhs: Box::new(expr),
+                rhs: Box::new(rhs),
+            }
+        }
+        expr
+    }
+
+    pub fn comparison(&mut self) -> Expr {
         let mut expr = self.term();
-        while self.match_up(vec![]) {
+        let greater = TokenType::BinaryOperator(BinaryOp::CompareOperator(CompareOp::Greater));
+        let greater_equal =
+            TokenType::BinaryOperator(BinaryOp::CompareOperator(CompareOp::GreaterEqual));
+        let less = TokenType::BinaryOperator(BinaryOp::CompareOperator(CompareOp::GreaterEqual));
+        let less_equal =
+            TokenType::BinaryOperator(BinaryOp::CompareOperator(CompareOp::GreaterEqual));
+        while self.match_up(vec![
+            greater.clone(),
+            greater_equal.clone(),
+            less.clone(),
+            less_equal.clone(),
+        ]) {
             let operator = self.previous();
             let rhs = self.term();
             expr = Expr::BinaryExpr {

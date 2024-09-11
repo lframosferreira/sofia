@@ -52,6 +52,8 @@ pub enum Statement {
     ExprStatement { expr: Box<Expr> },
     PrintStatement { expr: Box<Expr> },
     Declaration(Declaration),
+    // 0 or more declarations inside a {}
+    Block { statements: Vec<Statement> },
 }
 
 impl Parser {
@@ -69,7 +71,6 @@ impl Parser {
         Some(&self.tokens[self.index])
     }
 
-    // AKA consume
     pub fn advance(&mut self) -> &Token {
         let ret = &self.tokens[self.index];
         self.index += 1;
@@ -235,15 +236,13 @@ impl Parser {
             let assig_value = self.assignment();
 
             if let Expr::Variable { value } = expr {
-                dbg!("jkasdljfsdjk");
-                let name = value;
                 return Expr::Assign {
-                    name: name.clone(),
+                    name: value.clone(),
                     value: Box::new(assig_value),
                 };
             }
         }
-        panic!("invalid assignment target"); // should use equals here
+        expr
     }
 
     pub fn expression(&mut self) -> Expr {
@@ -267,9 +266,22 @@ impl Parser {
         }
     }
 
+    pub fn block(&mut self) -> Vec<Statement> {
+        let mut statements: Vec<Statement> = vec![];
+        while !self.check(&TokenType::RightCurlyBracket) & !self.is_at_end() {
+            statements.push(self.declaration());
+        }
+        self.consume(TokenType::RightCurlyBracket, "expect '}' after block");
+        statements
+    }
+
     pub fn statement(&mut self) -> Statement {
         if self.match_up(vec![TokenType::ReservedWord(Reserved::Print)]) {
             return self.print_statement();
+        } else if self.match_up(vec![TokenType::LeftCurlyBracket]) {
+            return Statement::Block {
+                statements: self.block(),
+            };
         } else {
             return self.expr_statement();
         }

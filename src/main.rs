@@ -1,7 +1,9 @@
 #![allow(warnings)]
 mod parser;
+mod interpreter;
 use std::{os::unix::fs::FileExt, process::exit};
 
+use interpreter::{eval, type_checker};
 use parser::lexer::tokenize;
 use parser::parser::Parser;
 use serde::{Deserialize, Serialize};

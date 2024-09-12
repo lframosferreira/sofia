@@ -1,5 +1,5 @@
-func bool is_prime(int n) {
-	for (int i = 0; i*i < n; i=i+1){
+func bool is_prime(n) {
+	for (let i = 0; i*i < n; i=i+1){
 		if (n % i == 0){
 			return False;
 		}

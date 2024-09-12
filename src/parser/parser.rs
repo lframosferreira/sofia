@@ -48,6 +48,9 @@ pub enum Expr {
 
 #[derive(Debug, Clone)]
 pub enum Declaration {
+    FunctionDeclaration {
+        name: Token,
+    },
     VariableDeclaration {
         name: Token,
         initializer_expr: Box<Expr>,
@@ -76,6 +79,14 @@ pub enum Statement {
     },
     ForStatement {
         initializer: Box<Expr>,
+    },
+    FunctionStatement {
+        name: Token,
+        parameters: Vec<Token>,
+        body: Vec<Statement>,
+    },
+    ReturnStatement {
+        expr: Box<Option<Expr>>,
     },
     Declaration(Declaration),
     // 0 or more declarations inside a {}
@@ -359,9 +370,40 @@ impl Parser {
         })
     }
 
+    pub fn function_declaration(&mut self) -> Statement {
+        // here we are taking the retunr typoe of the function. This is not okay, we should use
+        // consume. We need a refactor in token.rs to create specific tokens for type definitions
+        let return_type = self.advance();
+        let name = self.consume(TokenType::Identifier, "expect function name");
+        self.consume(TokenType::LeftParen, "expect '(' after function name");
+        let mut parameters: Vec<Token> = vec![];
+        if !self.check(&TokenType::RightParen) {
+            loop {
+                parameters.push(self.consume(TokenType::Identifier, "expect parameter name"));
+                if !self.match_up(vec![TokenType::Comma]) {
+                    break;
+                }
+            }
+        }
+        self.consume(TokenType::RightParen, "expect ')' after parameters");
+        self.consume(
+            TokenType::LeftCurlyBracket,
+            "expect '{' before function body",
+        );
+        let body = self.block();
+        Statement::FunctionStatement {
+            name: name.clone(),
+            parameters: parameters.clone(),
+            body: body.clone(),
+        }
+    }
+
     pub fn declaration(&mut self) -> Statement {
         if self.match_up(vec![TokenType::ReservedWord(Reserved::Let)]) {
             return self.variable_declaration();
+        }
+        if self.match_up(vec![TokenType::ReservedWord(Reserved::Func)]) {
+            return self.function_declaration();
         } else {
             return self.statement();
         }
@@ -463,6 +505,18 @@ impl Parser {
         body
     }
 
+    pub fn return_statement(&mut self) -> Statement {
+        let keyword = self.previous();
+        let mut value: Option<Expr> = None;
+        if !self.check(&TokenType::Semicolon) {
+            value = Some(self.expression());
+        }
+        self.consume(TokenType::Semicolon, "expect ';' after return value");
+        Statement::ReturnStatement {
+            expr: Box::new(value),
+        }
+    }
+
     pub fn statement(&mut self) -> Statement {
         if self.match_up(vec![TokenType::ReservedWord(Reserved::Print)]) {
             return self.print_statement();
@@ -476,6 +530,8 @@ impl Parser {
             return self.while_statement();
         } else if self.match_up(vec![TokenType::ReservedWord(Reserved::For)]) {
             return self.for_statement();
+        } else if self.match_up(vec![TokenType::ReservedWord(Reserved::Return)]) {
+            return self.return_statement();
         } else {
             return self.expr_statement();
         }

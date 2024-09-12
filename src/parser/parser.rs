@@ -1,7 +1,9 @@
 use crate::parser::token::Token;
+use serde::{Serialize, Deserialize};
 
 use super::token::{ArithmeticOp, BinaryOp, CompareOp, Numeral, Reserved, TokenType};
 
+#[derive(Serialize, Deserialize)]
 pub struct Parser {
     tokens: Vec<Token>,
     index: usize,
@@ -9,7 +11,7 @@ pub struct Parser {
 
 // we are brute forcing the token type for operators here, but this is njot always the case, if
 // should fiz this
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Expr {
     Litheral {
         value: Token,
@@ -46,7 +48,7 @@ pub enum Expr {
     },
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Declaration {
     FunctionDeclaration {
         name: Token,
@@ -60,7 +62,7 @@ pub enum Declaration {
     },
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Statement {
     ExprStatement {
         expr: Box<Expr>,

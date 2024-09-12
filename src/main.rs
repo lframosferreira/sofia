@@ -1,9 +1,11 @@
 #![allow(warnings)]
 mod parser;
-use std::process::exit;
+use std::{os::unix::fs::FileExt, process::exit};
 
 use parser::lexer::tokenize;
 use parser::parser::Parser;
+use serde::{Deserialize, Serialize};
+use serde_json;
 use std::env;
 
 fn main() -> std::io::Result<()> {
@@ -25,7 +27,9 @@ input file",
 
     let mut parser_object = Parser::new(tokens);
     let tree = parser_object.parse();
-    println!("{:#?}", tree);
+    let serialized = serde_json::to_string(&tree).unwrap();
+    std::fs::write("output.json", serialized).expect("UNable to write output json file.");
+    // println!("{:#?}", tree);
 
     Ok(())
 }

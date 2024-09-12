@@ -1,11 +1,13 @@
-#[derive(Debug, PartialEq, Eq, Clone)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub enum Numeral {
     Int64,
     Float64,
 }
 
 // A reserved word in the Sofia language
-#[derive(Debug, PartialEq, Clone, Eq)]
+#[derive(Debug, PartialEq, Clone, Eq, Serialize, Deserialize)]
 pub enum Reserved {
     Func,
     Int,
@@ -23,7 +25,7 @@ pub enum Reserved {
     Print,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CompareOp {
     // !=
     BangEqual,
@@ -41,7 +43,7 @@ pub enum CompareOp {
     LessEqual,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ArithmeticOp {
     // Asterisk
     // *
@@ -64,14 +66,14 @@ pub enum ArithmeticOp {
     Plus,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BinaryOp {
     CompareOperator(CompareOp),
     ArithmeticOperator(ArithmeticOp),
 }
 
 // A token type in the Sofia language
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum TokenType {
     // Left parenthesis
     // (
@@ -136,7 +138,7 @@ pub enum TokenType {
     Nil,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Token {
     pub _type: TokenType,
     pub value: Option<String>,

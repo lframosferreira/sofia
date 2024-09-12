@@ -212,9 +212,9 @@ impl Parser {
         let greater = TokenType::BinaryOperator(BinaryOp::CompareOperator(CompareOp::Greater));
         let greater_equal =
             TokenType::BinaryOperator(BinaryOp::CompareOperator(CompareOp::GreaterEqual));
-        let less = TokenType::BinaryOperator(BinaryOp::CompareOperator(CompareOp::GreaterEqual));
+        let less = TokenType::BinaryOperator(BinaryOp::CompareOperator(CompareOp::Less));
         let less_equal =
-            TokenType::BinaryOperator(BinaryOp::CompareOperator(CompareOp::GreaterEqual));
+            TokenType::BinaryOperator(BinaryOp::CompareOperator(CompareOp::LessEqual));
         while self.match_up(vec![
             greater.clone(),
             greater_equal.clone(),

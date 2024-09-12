@@ -39,6 +39,11 @@ pub enum Expr {
     Grouping {
         middle: Box<Expr>,
     },
+    Call {
+        callee: Box<Expr>,
+        paren: Token,
+        arguments: Vec<Expr>,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -158,6 +163,36 @@ impl Parser {
         panic!("Expect expression");
     }
 
+    pub fn finish_call(&mut self, callee: Expr) -> Expr {
+        let mut arguments: Vec<Expr> = vec![];
+        if !self.check(&TokenType::RightParen) {
+            loop {
+                arguments.push(self.expression());
+                if !self.match_up(vec![TokenType::Comma]) {
+                    break;
+                }
+            }
+        }
+        let paren = self.consume(TokenType::RightParen, "expect ')' after arguments");
+        Expr::Call {
+            callee: Box::new(callee),
+            paren: paren.clone(),
+            arguments: arguments.clone(),
+        }
+    }
+
+    pub fn call(&mut self) -> Expr {
+        let mut expr = self.primary();
+        loop {
+            if self.match_up(vec![TokenType::LeftParen]) {
+                expr = self.finish_call(expr);
+            } else {
+                break;
+            }
+        }
+        expr
+    }
+
     pub fn unary(&mut self) -> Expr {
         if self.match_up(vec![
             TokenType::ReservedWord(Reserved::Not),
@@ -170,7 +205,7 @@ impl Parser {
                 child: Box::new(rhs),
             };
         }
-        self.primary()
+        self.call()
     }
 
     pub fn factor(&mut self) -> Expr {
@@ -213,8 +248,7 @@ impl Parser {
         let greater_equal =
             TokenType::BinaryOperator(BinaryOp::CompareOperator(CompareOp::GreaterEqual));
         let less = TokenType::BinaryOperator(BinaryOp::CompareOperator(CompareOp::Less));
-        let less_equal =
-            TokenType::BinaryOperator(BinaryOp::CompareOperator(CompareOp::LessEqual));
+        let less_equal = TokenType::BinaryOperator(BinaryOp::CompareOperator(CompareOp::LessEqual));
         while self.match_up(vec![
             greater.clone(),
             greater_equal.clone(),

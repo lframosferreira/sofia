@@ -27,7 +27,7 @@ impl Environment {
 
     pub fn find(&self, name: String) -> Variable {
         if let Some(element) = self.variables.iter().rfind(|&x| x.name == name) {
-            dbg!("oi");
+            dbg!("found var");
             return element.clone();
         } else {
             panic!("not declared variable");

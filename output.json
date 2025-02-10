@@ -1,1 +1,1 @@
-[{"PrintStatement":{"expr":{"Grouping":{"middle":{"Litheral":{"value":{"_type":"String","value":"\"Hello world!\\n\""}}}}}}}]
+[{"WhileStatement":{"expr":{"Litheral":{"value":{"_type":"Bool","value":"True"}}},"stmt":{"Block":{"statements":[{"PrintStatement":{"expr":{"Grouping":{"middle":{"Litheral":{"value":{"_type":"String","value":"\"oi infinito\""}}}}}}}]}}}}]

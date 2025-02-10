@@ -1,0 +1,4 @@
+print(9);
+print(True);
+print(898);
+print(654.3);

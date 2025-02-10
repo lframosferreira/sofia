@@ -1,5 +1,5 @@
 use crate::parser::token::Token;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use super::token::{ArithmeticOp, BinaryOp, CompareOp, Numeral, Reserved, TokenType};
 
@@ -68,7 +68,7 @@ pub enum Statement {
         expr: Box<Expr>,
     },
     PrintStatement {
-        expr: Box<Expr>,
+        expr: Expr,
     },
     IfStatement {
         expr: Box<Expr>,
@@ -143,18 +143,14 @@ impl Parser {
                 return true;
             }
         }
-        return false;
+        false
     }
 
     pub fn primary(&mut self) -> Expr {
-        if self.match_up(vec![TokenType::Bool]) {
-            return Expr::Litheral {
-                value: self.peek().unwrap().clone(),
-            };
-        }
         if self.match_up(vec![
             TokenType::Number(Numeral::Int64),
             TokenType::Number(Numeral::Float64),
+            TokenType::Bool,
             TokenType::String,
         ]) {
             return Expr::Litheral {
@@ -352,9 +348,7 @@ impl Parser {
         let expr = self.expression(); // here we are accepting any kind of expression but it should
                                       // be only groupings
         self.consume(TokenType::Semicolon, "expect ';' after value");
-        Statement::PrintStatement {
-            expr: Box::new(expr),
-        }
+        Statement::PrintStatement { expr }
     }
 
     pub fn variable_declaration(&mut self) -> Statement {

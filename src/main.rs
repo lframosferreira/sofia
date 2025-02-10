@@ -3,7 +3,7 @@ mod interpreter;
 mod parser;
 use std::{os::unix::fs::FileExt, process::exit};
 
-use interpreter::{eval, type_checker};
+use interpreter::eval::Interpreter;
 use parser::lexer::tokenize;
 use parser::parser::Parser;
 use serde::{Deserialize, Serialize};
@@ -31,7 +31,9 @@ input file",
     let tree = parser_object.parse();
     let serialized = serde_json::to_string(&tree).unwrap();
     std::fs::write("output.json", serialized).expect("Unable to write output json file.");
-    eval::eval(tree);
+
+    let mut interp = Interpreter::new();
+    interp.eval(tree);
 
     Ok(())
 }

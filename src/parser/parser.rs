@@ -50,16 +50,9 @@ pub enum Expr {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Declaration {
-    FunctionDeclaration {
-        name: Token,
-    },
-    VariableDeclaration {
-        name: Token,
-        initializer_expr: Box<Expr>,
-    },
-    StatementDeclaration {
-        name: String,
-    },
+    FunctionDeclaration { name: Token },
+    VariableDeclaration { name: Token, initializer_expr: Expr },
+    StatementDeclaration { name: String },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -362,7 +355,7 @@ impl Parser {
         self.consume(TokenType::Semicolon, "expect ';' after var declaration.");
         Statement::Declaration(Declaration::VariableDeclaration {
             name: name.clone(),
-            initializer_expr: Box::new(initializer.unwrap()),
+            initializer_expr: initializer.unwrap(),
         })
     }
 

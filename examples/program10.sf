@@ -1,4 +1,9 @@
 let x = True;
 if (x){
-    print(x);
+    let a=3;
+    let b=4;
+    print(a+b);
+    print(5 + 4);
+}else{
+    print(7 - 3);
 }

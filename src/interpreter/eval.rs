@@ -102,10 +102,18 @@ impl Interpreter {
                 _ => None,
             },
             Expr::BinaryExpr { op, lhs, rhs } => {
-                let lhs_val = self.eval_expr(lhs);
-                let rhs_val = self.eval_expr(rhs);
+                let lhs_val = self.eval_expr(lhs).unwrap();
+                let rhs_val = self.eval_expr(rhs).unwrap();
                 match op._type {
                     TokenType::BinaryOperator(BinaryOp::ArithmeticOperator(ArithmeticOp::Plus)) => {
+                        use Value::*;
+                        match (lhs_val.clone(), rhs_val.clone()) {
+                            (Int64(l), Int64(r)) => Some(Int64(l + r)),
+                            (UInt64(l), UInt64(r)) => Some(UInt64(l + r)),
+                            (Float64(l), Float64(r)) => Some(Float64(l + r)),
+                            (Str(l), Str(r)) => Some(Str(format!("{}{}", l, r))),
+                            _ => panic!("Can't sum value variant {:?} with {:?}", lhs_val, rhs_val),
+                        }
                     }
                     _ => None,
                 }

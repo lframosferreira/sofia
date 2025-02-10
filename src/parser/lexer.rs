@@ -263,10 +263,16 @@ pub fn tokenize(content: &[u8]) -> Vec<Token> {
                     buffer.push(c as char);
                     i += 1;
                 }
+                // this is ugly but I think it works
                 if i < content.len()
                     && content[i] != b' '
                     && content[i] != b';'
                     && content[i] != b')'
+                    && content[i] != b'/'
+                    && content[i] != b'+'
+                    && content[i] != b'-'
+                    && content[i] != b'%'
+                    && content[i] != b'*'
                 {
                     eprintln!(
                         "Numbers should contains only digits and, in case of floats, a single ."
@@ -278,7 +284,15 @@ pub fn tokenize(content: &[u8]) -> Vec<Token> {
                         value: Some(buffer.clone()),
                     });
                 }
-            } else if c == b' ' || c == b';' || c == b')' {
+            } else if c == b' '
+                || c == b';'
+                || c == b')'
+                || content[i] != b'/'
+                || content[i] != b'+'
+                || content[i] != b'-'
+                || content[i] != b'%'
+                || content[i] != b'*'
+            {
                 tokens.push(Token {
                     _type: TokenType::Number(super::token::Numeral::Int64),
                     value: Some(buffer.clone()),

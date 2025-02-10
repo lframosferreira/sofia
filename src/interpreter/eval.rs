@@ -1,5 +1,5 @@
 use crate::parser::parser::{Declaration, Expr, Statement};
-use crate::parser::token::{ArithmeticOp, BinaryOp, Numeral, Token, TokenType};
+use crate::parser::token::{ArithmeticOp, BinaryOp, Numeral, Reserved, Token, TokenType};
 
 #[derive(Debug, Clone)]
 enum Value {
@@ -101,12 +101,46 @@ impl Interpreter {
                 })),
                 _ => None,
             },
+            Expr::Logical { op, lhs, rhs } => {
+                let lhs_val = self.eval_expr(lhs).unwrap();
+                let rhs_val = self.eval_expr(rhs).unwrap();
+                use Value::*;
+                match op._type {
+                    TokenType::ReservedWord(Reserved::And) => {
+                        match (lhs_val.clone(), rhs_val.clone()) {
+                            (Bool(l), Bool(r)) => Some(Bool(l && r)),
+                            _ => {
+                                panic!("Can't use logical operator if both sides are not booleans")
+                            }
+                        }
+                    }
+                    TokenType::ReservedWord(Reserved::Or) => {
+                        match (lhs_val.clone(), rhs_val.clone()) {
+                            (Bool(l), Bool(r)) => Some(Bool(l || r)),
+                            _ => {
+                                panic!("Can't use logical operator if both sides are not booleans")
+                            }
+                        }
+                    }
+                    _ => None,
+                }
+            }
+            Expr::UnaryExpr { op, child } => {
+                if let Some(expr_val) = self.eval_expr(child) {
+                    if let Value::Bool(b) = expr_val {
+                        return Some(Value::Bool(!b));
+                    } else {
+                        panic!("unary expression not must be used in boolean");
+                    }
+                }
+                panic!("child expression of unary doesn't evaluate to anything");
+            }
             Expr::BinaryExpr { op, lhs, rhs } => {
                 let lhs_val = self.eval_expr(lhs).unwrap();
                 let rhs_val = self.eval_expr(rhs).unwrap();
+                use Value::*;
                 match op._type {
                     TokenType::BinaryOperator(BinaryOp::ArithmeticOperator(ArithmeticOp::Plus)) => {
-                        use Value::*;
                         match (lhs_val.clone(), rhs_val.clone()) {
                             (Int64(l), Int64(r)) => Some(Int64(l + r)),
                             (UInt64(l), UInt64(r)) => Some(UInt64(l + r)),
@@ -117,19 +151,48 @@ impl Interpreter {
                     }
                     TokenType::BinaryOperator(BinaryOp::ArithmeticOperator(
                         ArithmeticOp::Minus,
-                    )) => {
-                        use Value::*;
-                        match (lhs_val.clone(), rhs_val.clone()) {
-                            (Int64(l), Int64(r)) => Some(Int64(l - r)),
-                            (UInt64(l), UInt64(r)) => Some(UInt64(l - r)),
-                            (Float64(l), Float64(r)) => Some(Float64(l - r)),
-                            (Str(l), Str(r)) => Some(Str(format!("{}{}", l, r))),
-                            _ => panic!(
-                                "Can't use - (minus) in value variant {:?} with {:?}",
-                                lhs_val, rhs_val
-                            ),
-                        }
-                    }
+                    )) => match (lhs_val.clone(), rhs_val.clone()) {
+                        (Int64(l), Int64(r)) => Some(Int64(l - r)),
+                        (UInt64(l), UInt64(r)) => Some(UInt64(l - r)),
+                        (Float64(l), Float64(r)) => Some(Float64(l - r)),
+                        (Str(l), Str(r)) => Some(Str(format!("{}{}", l, r))),
+                        _ => panic!(
+                            "Can't use - (minus) in value variant {:?} with {:?}",
+                            lhs_val, rhs_val
+                        ),
+                    },
+                    TokenType::BinaryOperator(BinaryOp::ArithmeticOperator(
+                        ArithmeticOp::Asterisk,
+                    )) => match (lhs_val.clone(), rhs_val.clone()) {
+                        (Int64(l), Int64(r)) => Some(Int64(l * r)),
+                        (UInt64(l), UInt64(r)) => Some(UInt64(l * r)),
+                        (Float64(l), Float64(r)) => Some(Float64(l * r)),
+                        _ => panic!(
+                            "Can't use * (multiply) in value variant {:?} with {:?}",
+                            lhs_val, rhs_val
+                        ),
+                    },
+                    TokenType::BinaryOperator(BinaryOp::ArithmeticOperator(
+                        ArithmeticOp::Slash,
+                    )) => match (lhs_val.clone(), rhs_val.clone()) {
+                        (Int64(l), Int64(r)) => Some(Int64(l / r)),
+                        (UInt64(l), UInt64(r)) => Some(UInt64(l / r)),
+                        (Float64(l), Float64(r)) => Some(Float64(l / r)),
+                        _ => panic!(
+                            "Can't use / (division) in value variant {:?} with {:?}",
+                            lhs_val, rhs_val
+                        ),
+                    },
+                    TokenType::BinaryOperator(BinaryOp::ArithmeticOperator(
+                        ArithmeticOp::Modulo,
+                    )) => match (lhs_val.clone(), rhs_val.clone()) {
+                        (Int64(l), Int64(r)) => Some(Int64(l % r)),
+                        (UInt64(l), UInt64(r)) => Some(UInt64(l % r)),
+                        _ => panic!(
+                            "Can't use / (division) in value variant {:?} with {:?}",
+                            lhs_val, rhs_val
+                        ),
+                    },
                     _ => None,
                 }
             }
@@ -143,7 +206,7 @@ impl Interpreter {
                     self.env.change(&name.value.clone().unwrap(), &expr_value);
                     Some(expr_value)
                 } else {
-                    panic!("Expression in aiignment doesn't evaluate to anything, should be NIL in future");
+                    panic!("Expression in assignment doesn't evaluate to anything, should be NIL in future");
                 }
             }
             _ => None,
@@ -154,13 +217,14 @@ impl Interpreter {
         match declaration {
             Declaration::VariableDeclaration {
                 name,
+                type_,
                 initializer_expr,
             } => {
                 if let Some(expr_value) = self.eval_expr(initializer_expr) {
                     self.env.insert(&name.value.clone().unwrap(), &expr_value);
                     Some(expr_value)
                 } else {
-                    panic!("Expression in aiignment doesn't evaluate to anything, should be NIL in future");
+                    panic!("Expression in assignment doesn't evaluate to anything, should be NIL in future");
                 }
             }
             _ => {

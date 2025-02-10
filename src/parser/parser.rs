@@ -67,7 +67,7 @@ pub enum Declaration {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Statement {
     ExprStatement {
-        expr: Box<Expr>,
+        expr: Expr,
     },
     PrintStatement {
         expr: Expr,
@@ -107,38 +107,47 @@ impl Parser {
         }
     }
 
-    pub fn peek(&self) -> Option<&Token> {
+    fn peek(&self) -> Option<&Token> {
         if self.index >= self.tokens.len() {
             return None;
         }
         Some(&self.tokens[self.index])
     }
 
-    pub fn advance(&mut self) -> &Token {
+    fn advance(&mut self) -> &Token {
         let ret = &self.tokens[self.index];
         self.index += 1;
         &ret
     }
 
-    pub fn previous(&self) -> Token {
+    fn previous(&self) -> Token {
         self.tokens[self.index - 1].clone()
     }
 
-    pub fn consume(&mut self, token_type: TokenType, message: &str) -> Token {
+    fn consume(&mut self, token_type: TokenType, message: &str) -> Token {
         if self.check(&token_type) {
             return self.advance().clone();
         }
         panic!("{message}")
     }
 
-    pub fn check(&self, token_type: &TokenType) -> bool {
+    fn consume_from_list(&mut self, token_type_list: Vec<TokenType>, message: &str) -> Token {
+        for token_type in token_type_list.iter() {
+            if self.check(&token_type) {
+                return self.advance().clone();
+            }
+        }
+        panic!("{message}")
+    }
+
+    fn check(&self, token_type: &TokenType) -> bool {
         if let Some(token) = self.peek() {
             return token._type == *token_type;
         }
         false
     }
 
-    pub fn match_up(&mut self, token_types: Vec<TokenType>) -> bool {
+    fn match_up(&mut self, token_types: Vec<TokenType>) -> bool {
         for token_type in token_types {
             if self.check(&token_type) {
                 self.advance();
@@ -354,9 +363,13 @@ impl Parser {
     }
 
     pub fn variable_declaration(&mut self) -> Statement {
-        // PUT AL RESERVED WORD VARIANTS OF TYPES
-        let var_type = self.consume(
-            TokenType::ReservedWord(Reserved::Bool),
+        let var_type = self.consume_from_list(
+            vec![
+                TokenType::ReservedWord(Reserved::Bool),
+                TokenType::ReservedWord(Reserved::Int),
+                TokenType::ReservedWord(Reserved::Float),
+                TokenType::ReservedWord(Reserved::String),
+            ],
             "expect variable type",
         );
         let name = self.consume(TokenType::Identifier, "expect variable name.");
@@ -369,16 +382,20 @@ impl Parser {
         self.consume(TokenType::Semicolon, "expect ';' after var declaration.");
         Statement::Declaration(Declaration::VariableDeclaration {
             name: name.clone(),
+            type_: var_type,
             initializer_expr: initializer.unwrap(),
         })
     }
 
     pub fn function_declaration(&mut self) -> Statement {
-        // here we are taking the retunr typoe of the function. This is not okay, we should use
+        // here we are taking the return type of the function. This is not okay, we should use
         // consume. We need a refactor in token.rs to create specific tokens for type definitions
-        let return_type = self.advance();
         let name = self.consume(TokenType::Identifier, "expect function name");
-        self.consume(TokenType::LeftParen, "expect '(' after function name");
+        let return_type = self.advance();
+        self.consume(
+            TokenType::LeftParen,
+            "expect '(' after function name and type declaration",
+        );
         let mut parameters: Vec<Token> = vec![];
         if !self.check(&TokenType::RightParen) {
             loop {
@@ -415,9 +432,7 @@ impl Parser {
     pub fn expr_statement(&mut self) -> Statement {
         let expr = self.expression();
         self.consume(TokenType::Semicolon, "expect ';' after value");
-        Statement::ExprStatement {
-            expr: Box::new(expr),
-        }
+        Statement::ExprStatement { expr }
     }
 
     pub fn block(&mut self) -> Vec<Statement> {
@@ -479,16 +494,11 @@ impl Parser {
         if !self.check(&TokenType::RightParen) {
             increment = Some(self.expression());
         }
-        self.consume(TokenType::RightParen, "expect ')'afterfor clauses");
+        self.consume(TokenType::RightParen, "expect ')' after for clauses");
         let mut body = self.statement();
         if let Some(inc) = increment {
             body = Statement::Block {
-                statements: vec![
-                    body,
-                    Statement::ExprStatement {
-                        expr: Box::new(inc),
-                    },
-                ],
+                statements: vec![body, Statement::ExprStatement { expr: inc }],
             }
         }
         if condition.is_none() {

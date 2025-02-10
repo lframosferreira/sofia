@@ -1,9 +1,1 @@
-let x = True;
-if (x){
-    let a=3;
-    let b=4;
-    print(a+b);
-    print(5 + 4);
-}else{
-    print(7 - 3);
-}
+let bool x = False;

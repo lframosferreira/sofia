@@ -115,6 +115,21 @@ impl Interpreter {
                             _ => panic!("Can't sum value variant {:?} with {:?}", lhs_val, rhs_val),
                         }
                     }
+                    TokenType::BinaryOperator(BinaryOp::ArithmeticOperator(
+                        ArithmeticOp::Minus,
+                    )) => {
+                        use Value::*;
+                        match (lhs_val.clone(), rhs_val.clone()) {
+                            (Int64(l), Int64(r)) => Some(Int64(l - r)),
+                            (UInt64(l), UInt64(r)) => Some(UInt64(l - r)),
+                            (Float64(l), Float64(r)) => Some(Float64(l - r)),
+                            (Str(l), Str(r)) => Some(Str(format!("{}{}", l, r))),
+                            _ => panic!(
+                                "Can't use - (minus) in value variant {:?} with {:?}",
+                                lhs_val, rhs_val
+                            ),
+                        }
+                    }
                     _ => None,
                 }
             }

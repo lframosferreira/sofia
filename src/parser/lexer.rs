@@ -7,6 +7,7 @@ fn check_reserved_word(buffer: &String) -> Option<Reserved> {
         "func" => Some(Reserved::Func),
         "int" => Some(Reserved::Int),
         "float" => Some(Reserved::Float),
+        "bool" => Some(Reserved::Bool),
         "string" => Some(Reserved::String),
         "let" => Some(Reserved::Let),
         "return" => Some(Reserved::Return),

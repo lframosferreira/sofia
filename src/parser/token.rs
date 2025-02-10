@@ -11,6 +11,7 @@ pub enum Numeral {
 pub enum Reserved {
     Func,
     Int,
+    Bool,
     Float,
     String,
     Return,

@@ -50,9 +50,18 @@ pub enum Expr {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Declaration {
-    FunctionDeclaration { name: Token },
-    VariableDeclaration { name: Token, initializer_expr: Expr },
-    StatementDeclaration { name: String },
+    FunctionDeclaration {
+        name: Token,
+        return_type: Token,
+    },
+    VariableDeclaration {
+        name: Token,
+        type_: Token,
+        initializer_expr: Expr,
+    },
+    StatementDeclaration {
+        name: String,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -345,6 +354,11 @@ impl Parser {
     }
 
     pub fn variable_declaration(&mut self) -> Statement {
+        // PUT AL RESERVED WORD VARIANTS OF TYPES
+        let var_type = self.consume(
+            TokenType::ReservedWord(Reserved::Bool),
+            "expect variable type",
+        );
         let name = self.consume(TokenType::Identifier, "expect variable name.");
         let mut initializer: Option<Expr> = None;
         if self.match_up(vec![TokenType::BinaryOperator(BinaryOp::CompareOperator(

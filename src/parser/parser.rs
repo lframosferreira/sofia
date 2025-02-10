@@ -64,7 +64,7 @@ pub enum Statement {
         expr: Expr,
     },
     IfStatement {
-        expr: Box<Expr>,
+        expr: Expr,
         stmt: Box<Statement>,
         else_stmt: Option<Box<Statement>>,
     },
@@ -81,7 +81,7 @@ pub enum Statement {
         body: Vec<Statement>,
     },
     ReturnStatement {
-        expr: Box<Option<Expr>>,
+        expr: Option<Expr>,
     },
     Declaration(Declaration),
     // 0 or more declarations inside a {}
@@ -425,7 +425,7 @@ impl Parser {
             else_branch = Some(self.statement());
         }
         Statement::IfStatement {
-            expr: Box::new(condition),
+            expr: condition,
             stmt: Box::new(then_branch),
             else_stmt: match else_branch {
                 Some(val) => Some(Box::new(val)),
@@ -501,9 +501,7 @@ impl Parser {
             value = Some(self.expression());
         }
         self.consume(TokenType::Semicolon, "expect ';' after return value");
-        Statement::ReturnStatement {
-            expr: Box::new(value),
-        }
+        Statement::ReturnStatement { expr: value }
     }
 
     pub fn statement(&mut self) -> Statement {

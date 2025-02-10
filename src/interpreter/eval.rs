@@ -1,5 +1,5 @@
 use crate::parser::parser::{Declaration, Expr, Statement};
-use crate::parser::token::{ArithmeticOp, Numeral, Token, TokenType};
+use crate::parser::token::{ArithmeticOp, BinaryOp, Numeral, Token, TokenType};
 
 #[derive(Debug, Clone)]
 enum Value {
@@ -80,7 +80,6 @@ impl Interpreter {
     }
 
     fn eval_expr(&mut self, expr: &Expr) -> Option<Value> {
-        println!("{:?}", expr);
         match expr {
             Expr::Grouping { middle } => self.eval_expr(middle),
             Expr::Litheral { value } => match value._type {
@@ -102,6 +101,15 @@ impl Interpreter {
                 })),
                 _ => None,
             },
+            Expr::BinaryExpr { op, lhs, rhs } => {
+                let lhs_val = self.eval_expr(lhs);
+                let rhs_val = self.eval_expr(rhs);
+                match op._type {
+                    TokenType::BinaryOperator(BinaryOp::ArithmeticOperator(ArithmeticOp::Plus)) => {
+                    }
+                    _ => None,
+                }
+            }
             Expr::Variable { value } => {
                 let identifier = value.value.clone().unwrap();
                 let variable = self.env.find(&identifier);
@@ -138,28 +146,58 @@ impl Interpreter {
         }
     }
 
-    pub fn eval(&mut self, code: Vec<Statement>) {
-        for stmt in code.iter() {
-            match stmt {
-                Statement::PrintStatement { expr } => {
-                    if let Some(expr_val) = self.eval_expr(expr) {
-                        match expr_val {
-                            Value::Int64(i) => println!("{:?}", i),
-                            Value::UInt64(u) => println!("{:?}", u),
-                            Value::Float64(f) => println!("{:?}", f),
-                            Value::Bool(b) => println!("{:?}", b),
-                            Value::Str(s) => println!("{:?}", s),
+    fn eval_stmt(&mut self, stmt: &Statement) {
+        match stmt {
+            Statement::Block { statements } => {
+                for stmt in statements.iter() {
+                    self.eval_stmt(stmt);
+                }
+            }
+            Statement::PrintStatement { expr } => {
+                if let Some(expr_val) = self.eval_expr(expr) {
+                    match expr_val {
+                        Value::Int64(i) => println!("{:?}", i),
+                        Value::UInt64(u) => println!("{:?}", u),
+                        Value::Float64(f) => println!("{:?}", f),
+                        Value::Bool(b) => println!("{:?}", b),
+                        Value::Str(s) => println!("{:?}", s),
+                    }
+                } else {
+                    println!();
+                }
+            }
+            Statement::ExprStatement { expr } => _ = self.eval_expr(expr),
+            Statement::IfStatement {
+                expr,
+                stmt,
+                else_stmt,
+            } => {
+                if let Some(value) = self.eval_expr(expr) {
+                    if let Value::Bool(b) = value {
+                        if (b) {
+                            self.eval_stmt(stmt);
+                        } else {
+                            if let Some(else_stmt_unwrapped) = else_stmt {
+                                self.eval_stmt(else_stmt_unwrapped);
+                            }
                         }
                     } else {
-                        println!();
+                        panic!("If expression should evaluate to boolean");
                     }
+                } else {
+                    panic!("If expression doesn't evaluate to anything");
                 }
-                Statement::ExprStatement { expr } => _ = self.eval_expr(expr),
-                Statement::Declaration(declaration) => {
-                    self.eval_decl(declaration);
-                }
-                _ => println!("Not implemented yet for eval: {:?}", stmt),
             }
+            Statement::Declaration(declaration) => {
+                self.eval_decl(declaration);
+            }
+            _ => println!("Not implemented yet for eval: {:?}", stmt),
+        }
+    }
+
+    pub fn eval(&mut self, code: Vec<Statement>) {
+        for stmt in code.iter() {
+            self.eval_stmt(stmt);
         }
     }
 }

@@ -1,5 +1,7 @@
 use crate::parser::parser::{Declaration, Expr, Parameter, Statement};
-use crate::parser::token::{ArithmeticOp, BinaryOp, Numeral, Reserved, Token, TokenType};
+use crate::parser::token::{
+    ArithmeticOp, BinaryOp, CompareOp, Numeral, Reserved, Token, TokenType,
+};
 
 #[derive(Debug, Clone)]
 enum Value {
@@ -227,6 +229,80 @@ impl Interpreter {
                             lhs_val, rhs_val
                         ),
                     },
+                    TokenType::BinaryOperator(BinaryOp::CompareOperator(CompareOp::Less)) => {
+                        match (lhs_val.clone(), rhs_val.clone()) {
+                            (Int64(l), Int64(r)) => Some(Bool(l < r)),
+                            (UInt64(l), UInt64(r)) => Some(Bool(l < r)),
+                            (Float64(l), Float64(r)) => Some(Bool(l < r)),
+                            (Str(l), Str(r)) => Some(Bool(l < r)),
+                            _ => panic!(
+                                "Can't use < (less than) in value variant {:?} with {:?}",
+                                lhs_val, rhs_val
+                            ),
+                        }
+                    }
+                    TokenType::BinaryOperator(BinaryOp::CompareOperator(CompareOp::Greater)) => {
+                        match (lhs_val.clone(), rhs_val.clone()) {
+                            (Int64(l), Int64(r)) => Some(Bool(l > r)),
+                            (UInt64(l), UInt64(r)) => Some(Bool(l > r)),
+                            (Float64(l), Float64(r)) => Some(Bool(l > r)),
+                            (Str(l), Str(r)) => Some(Bool(l > r)),
+                            _ => panic!(
+                                "Can't use > (greater than) in value variant {:?} with {:?}",
+                                lhs_val, rhs_val
+                            ),
+                        }
+                    }
+                    TokenType::BinaryOperator(BinaryOp::CompareOperator(CompareOp::LessEqual)) => {
+                        match (lhs_val.clone(), rhs_val.clone()) {
+                            (Int64(l), Int64(r)) => Some(Bool(l <= r)),
+                            (UInt64(l), UInt64(r)) => Some(Bool(l <= r)),
+                            (Float64(l), Float64(r)) => Some(Bool(l <= r)),
+                            (Str(l), Str(r)) => Some(Bool(l <= r)),
+                            _ => panic!(
+                                "Can't use <= (less than or equal) in value variant {:?} with {:?}",
+                                lhs_val, rhs_val
+                            ),
+                        }
+                    }
+                    TokenType::BinaryOperator(BinaryOp::CompareOperator(
+                        CompareOp::GreaterEqual,
+                    )) => match (lhs_val.clone(), rhs_val.clone()) {
+                        (Int64(l), Int64(r)) => Some(Bool(l >= r)),
+                        (UInt64(l), UInt64(r)) => Some(Bool(l >= r)),
+                        (Float64(l), Float64(r)) => Some(Bool(l >= r)),
+                        (Str(l), Str(r)) => Some(Bool(l >= r)),
+                        _ => panic!(
+                            "Can't use >= (grater than or equal) in value variant {:?} with {:?}",
+                            lhs_val, rhs_val
+                        ),
+                    },
+                    TokenType::BinaryOperator(BinaryOp::CompareOperator(CompareOp::EqualEqual)) => {
+                        match (lhs_val.clone(), rhs_val.clone()) {
+                            (Int64(l), Int64(r)) => Some(Bool(l == r)),
+                            (UInt64(l), UInt64(r)) => Some(Bool(l == r)),
+                            (Float64(l), Float64(r)) => Some(Bool(l == r)),
+                            (Str(l), Str(r)) => Some(Bool(l == r)),
+                            (Bool(l), Bool(r)) => Some(Bool(l == r)),
+                            _ => panic!(
+                                "Can't use == (equal equal) in value variant {:?} with {:?}",
+                                lhs_val, rhs_val
+                            ),
+                        }
+                    }
+                    TokenType::BinaryOperator(BinaryOp::CompareOperator(CompareOp::BangEqual)) => {
+                        match (lhs_val.clone(), rhs_val.clone()) {
+                            (Int64(l), Int64(r)) => Some(Bool(l != r)),
+                            (UInt64(l), UInt64(r)) => Some(Bool(l != r)),
+                            (Float64(l), Float64(r)) => Some(Bool(l != r)),
+                            (Str(l), Str(r)) => Some(Bool(l != r)),
+                            (Bool(l), Bool(r)) => Some(Bool(l == r)),
+                            _ => panic!(
+                                "Can't use != (bang equal) in value variant {:?} with {:?}",
+                                lhs_val, rhs_val
+                            ),
+                        }
+                    }
                     _ => None,
                 }
             }

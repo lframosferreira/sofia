@@ -1,0 +1,5 @@
+let int x = 9;
+let int y = 19;
+if (x < y){
+    print(x+y);
+}

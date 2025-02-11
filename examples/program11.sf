@@ -1,0 +1,8 @@
+func bool test(bool x, bool y){
+    if (x and y){
+        print("if");
+    }else{
+        print("else");
+    }
+}
+test(True, True or False);

@@ -65,7 +65,7 @@ pub enum Declaration {
     VariableDeclaration {
         name: Token,
         type_: Token,
-        initializer_expr: Expr,
+        initializer_expr: Option<Expr>,
     },
 }
 
@@ -91,8 +91,7 @@ pub enum Statement {
     },
     FunctionStatement {
         name: Token,
-        parameters: Vec<Token>,
-        body: Vec<Statement>,
+        parameters: Vec<Expr>,
     },
     ReturnStatement {
         expr: Option<Expr>,
@@ -388,7 +387,7 @@ impl Parser {
         Statement::Declaration(Declaration::VariableDeclaration {
             name: name.clone(),
             type_: var_type,
-            initializer_expr: initializer.unwrap(),
+            initializer_expr: initializer,
         })
     }
 

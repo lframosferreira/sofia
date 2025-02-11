@@ -8,6 +8,8 @@ enum Value {
     Float64(f64),
     Bool(bool),
     Str(String),
+    Func(Function),
+    Nil,
 }
 
 impl Value {
@@ -18,6 +20,8 @@ impl Value {
             Value::Float64(f) => f.to_string(),
             Value::Bool(b) => b.to_string(),
             Value::Str(s) => s.clone(),
+            Value::Func(function) => function.name.to_string(),
+            Value::Nil => "Nil".to_string(),
         }
     }
 }
@@ -40,15 +44,11 @@ struct Function {
 // vec of functions which, in this case, are identifiers only
 struct Environment {
     variables: Vec<Variable>,
-    functions: Vec<Function>,
 }
 
 impl Environment {
     pub fn new() -> Self {
-        return Environment {
-            variables: vec![],
-            functions: vec![],
-        };
+        return Environment { variables: vec![] };
     }
 
     pub fn insert_var(&mut self, name: &String, value: &Value) {
@@ -78,31 +78,6 @@ impl Environment {
         let mut variable = self.find_var_mut(name);
         println!("{:?}", variable);
         variable.value = value.clone();
-    }
-
-    pub fn insert_fn(&mut self, name: &String, value: &Function) {
-        self.functions.push(value.clone());
-    }
-
-    pub fn find_fn(&self, name: &String) -> &Function {
-        if let Some(function) = self.functions.iter().rfind(|&x| x.name == *name) {
-            return function;
-        } else {
-            panic!("Function {:?} not declared", name);
-        }
-    }
-
-    fn find_fn_mut(&mut self, name: &String) -> &mut Function {
-        if let Some(function) = self.functions.iter_mut().rfind(|x| x.name == *name) {
-            return function;
-        } else {
-            panic!("Function {:?} not declared", name);
-        }
-    }
-
-    pub fn change_fn(&mut self, name: &String, value: &Function) {
-        let mut function = self.find_fn_mut(name);
-        *function = value.clone();
     }
 }
 
@@ -255,6 +230,28 @@ impl Interpreter {
                 let variable = self.env.find_var(&identifier);
                 Some(variable.value.clone())
             }
+            Expr::Call {
+                callee,
+                paren,
+                arguments,
+            } => {
+                if let Some(callee_value) = self.eval_expr(callee) {
+                    if let Value::Func(func) = callee_value {
+                        let arguments_evaluated: Vec<_> =
+                            arguments.iter().map(|arg| self.eval_expr(arg).unwrap_or(Value::Nil)).collect();
+                        let parameters_types: Vec<_> = func.parameters.iter().map(|p| match p.type_{
+                            TokenType::ReservedWord(Reserved::Bool) => Some(Value::Bool())
+                            
+                        })
+                        
+                        None
+                    } else {
+                        panic!("Callee expression doesn't evaluate to a function");
+                    }
+                } else {
+                    panic!("Callee expression doesn't evaluate to anything");
+                }
+            }
             Expr::Assign { name, value } => {
                 if let Some(expr_value) = self.eval_expr(value) {
                     self.env
@@ -275,12 +272,18 @@ impl Interpreter {
                 type_,
                 initializer_expr,
             } => {
-                if let Some(expr_value) = self.eval_expr(initializer_expr) {
-                    self.env
-                        .insert_var(&name.value.clone().unwrap(), &expr_value);
-                    Some(expr_value)
+                if let Some(expr) = initializer_expr {
+                    if let Some(expr_value) = self.eval_expr(expr) {
+                        self.env
+                            .insert_var(&name.value.clone().unwrap(), &expr_value);
+                        Some(expr_value)
+                    } else {
+                        panic!("Expression in assignment doesn't evaluate to anything, should be NIL in future");
+                    }
                 } else {
-                    panic!("Expression in assignment doesn't evaluate to anything, should be NIL in future");
+                    self.env
+                        .insert_var(&name.value.clone().unwrap(), &Value::Nil);
+                    None
                 }
             }
             Declaration::FunctionDeclaration {
@@ -288,7 +291,18 @@ impl Interpreter {
                 return_type,
                 parameters,
                 body,
-            } => None,
+            } => {
+                self.env.insert_var(
+                    &name.value.clone().unwrap(),
+                    &Value::Func(Function {
+                        name: name.value.clone().unwrap(),
+                        return_type: return_type._type.clone(),
+                        parameters: parameters.to_vec(),
+                        body: body.to_vec(),
+                    }),
+                );
+                None
+            }
             _ => {
                 panic!("Not implemented for this declaration yet")
             }
@@ -310,6 +324,8 @@ impl Interpreter {
                         Value::Float64(f) => println!("{:?}", f),
                         Value::Bool(b) => println!("{:?}", b),
                         Value::Str(s) => println!("{:?}", s),
+                        Value::Nil => println!("Nil"),
+                        Value::Func(function) => println!("{:?}", function.name.to_string()),
                     }
                 } else {
                     println!();

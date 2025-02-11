@@ -1,1 +1,2 @@
-print("Hello world!\n");
+let int x;
+print(x);

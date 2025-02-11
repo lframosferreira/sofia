@@ -6,3 +6,7 @@ func bool is_prime(int n) {
 	}
 	return True;
 }
+
+if (is_prime(67)){
+	print("67 é primo");
+}

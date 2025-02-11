@@ -127,13 +127,29 @@ impl Interpreter {
             }
             Expr::UnaryExpr { op, child } => {
                 if let Some(expr_val) = self.eval_expr(child) {
-                    if let Value::Bool(b) = expr_val {
-                        return Some(Value::Bool(!b));
-                    } else {
-                        panic!("unary expression not must be used in boolean");
+                    match op._type {
+                        TokenType::ReservedWord(Reserved::Not) => {
+                            if let Value::Bool(b) = expr_val {
+                                return Some(Value::Bool(!b));
+                            } else {
+                                panic!("unary expression not must be used in boolean");
+                            }
+                        }
+                        TokenType::BinaryOperator(BinaryOp::ArithmeticOperator(
+                            ArithmeticOp::Minus,
+                        )) => {
+                            if let Value::Int64(i) = expr_val {
+                                return Some(Value::Int64(-1 * i));
+                            } else if let Value::Float64(f) = expr_val {
+                                return Some(Value::Float64(-1.0 * f));
+                            } else {
+                                panic!("unary expression not must be used in boolean");
+                            }
+                        }
+                        _ => panic!("The operator {:?} is not unary", op),
                     }
                 }
-                panic!("child expression of unary doesn't evaluate to anything");
+                panic!("Expression child in unary does not evaluate to anything");
             }
             Expr::BinaryExpr { op, lhs, rhs } => {
                 let lhs_val = self.eval_expr(lhs).unwrap();

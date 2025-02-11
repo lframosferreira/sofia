@@ -3,5 +3,5 @@ let bool y = True;
 if (not (x and y)){
     let float y = 6.09;
     let float z = 9.09;
-    print(y*z);
+    print((-y)*z);
 }

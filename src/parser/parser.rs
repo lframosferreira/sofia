@@ -59,9 +59,6 @@ pub enum Declaration {
         type_: Token,
         initializer_expr: Expr,
     },
-    StatementDeclaration {
-        name: String,
-    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -78,11 +75,11 @@ pub enum Statement {
         else_stmt: Option<Box<Statement>>,
     },
     WhileStatement {
-        expr: Box<Expr>,
+        expr: Expr,
         stmt: Box<Statement>,
     },
     ForStatement {
-        initializer: Box<Expr>,
+        initializer: Expr,
     },
     FunctionStatement {
         name: Token,
@@ -390,8 +387,8 @@ impl Parser {
     pub fn function_declaration(&mut self) -> Statement {
         // here we are taking the return type of the function. This is not okay, we should use
         // consume. We need a refactor in token.rs to create specific tokens for type definitions
-        let name = self.consume(TokenType::Identifier, "expect function name");
         let return_type = self.advance();
+        let name = self.consume(TokenType::Identifier, "expect function name");
         self.consume(
             TokenType::LeftParen,
             "expect '(' after function name and type declaration",
@@ -469,7 +466,7 @@ impl Parser {
         self.consume(TokenType::RightParen, "expect ')' after condition");
         let body = self.statement();
         Statement::WhileStatement {
-            expr: Box::new(condition),
+            expr: condition,
             stmt: Box::new(body),
         }
     }
@@ -506,7 +503,7 @@ impl Parser {
                 value: Token::new(TokenType::Bool, Some("True".to_string())),
             });
             body = Statement::WhileStatement {
-                expr: Box::new(condition.unwrap()),
+                expr: condition.unwrap(),
                 stmt: Box::new(body),
             };
         }

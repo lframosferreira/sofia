@@ -79,6 +79,11 @@ impl Environment {
         println!("{:?}", variable);
         variable.value = value.clone();
     }
+
+    pub fn remove_last_n(&mut self, n: usize) {
+        self.variables
+            .truncate(self.variables.len().saturating_sub(n));
+    }
 }
 
 pub struct Interpreter {
@@ -235,16 +240,76 @@ impl Interpreter {
                 paren,
                 arguments,
             } => {
+                enum VarType {
+                    Bool,
+                    Int,
+                    Float,
+                    Str,
+                    Func,
+                    Nil,
+                }
                 if let Some(callee_value) = self.eval_expr(callee) {
                     if let Value::Func(func) = callee_value {
-                        let arguments_evaluated: Vec<_> =
-                            arguments.iter().map(|arg| self.eval_expr(arg).unwrap_or(Value::Nil)).collect();
-                        let parameters_types: Vec<_> = func.parameters.iter().map(|p| match p.type_{
-                            TokenType::ReservedWord(Reserved::Bool) => Some(Value::Bool())
-                            
-                        })
-                        
-                        None
+                        if arguments.len() != func.parameters.len() {
+                            panic!("Arguments list and parameters list doesn't have the same size");
+                        }
+                        let arguments_evaluated: Vec<_> = arguments
+                            .iter()
+                            .map(|arg| self.eval_expr(arg).unwrap_or(Value::Nil))
+                            .collect();
+                        let parameters_types: Vec<_> = func
+                            .parameters
+                            .iter()
+                            .map(|p| match p.type_ {
+                                TokenType::ReservedWord(Reserved::Bool) => VarType::Bool,
+                                TokenType::ReservedWord(Reserved::Int) => VarType::Int,
+                                TokenType::ReservedWord(Reserved::Float) => VarType::Float,
+                                TokenType::ReservedWord(Reserved::String) => VarType::Str,
+                                TokenType::Nil => VarType::Nil,
+                                _ => unreachable!(),
+                            })
+                            .collect();
+                        if arguments_evaluated
+                            .iter()
+                            .zip(parameters_types)
+                            .map(|val| match val {
+                                (Value::Bool(_), VarType::Bool) => true,
+                                (Value::Int64(_), VarType::Int) => true,
+                                (Value::Float64(_), VarType::Float) => true,
+                                (Value::Str(_), VarType::Str) => true,
+                                (Value::Nil, VarType::Nil) => true,
+                                _ => false,
+                            })
+                            .any(|v| v == false)
+                        {
+                            panic!("Values passed to function doesn't fit the parameter types of the functions");
+                        }
+                        arguments_evaluated.iter().enumerate().for_each(|(i, arg)| {
+                            self.env.insert_var(&func.parameters[i].identifier, arg);
+                        });
+                        let mut ret: Option<Value> = None;
+                        let mut decl_count: usize = 0;
+                        for stmt in func.body {
+                            match stmt {
+                                Statement::ReturnStatement { expr } => {
+                                    if let Some(expr_unwrapped) = expr {
+                                        ret = self.eval_expr(&expr_unwrapped);
+                                    } else {
+                                        ret = Some(Value::Nil);
+                                    }
+                                }
+                                _ => {
+                                    if let Statement::Declaration(_) = stmt {
+                                        decl_count += 1;
+                                    }
+                                    self.eval_stmt(&stmt);
+                                }
+                            }
+                        }
+                        // Now I need to drop the variables declared in this scope, which are the
+                        // ones in the functions scope and the parameters
+                        self.env.remove_last_n(decl_count + arguments.len());
+                        ret
                     } else {
                         panic!("Callee expression doesn't evaluate to a function");
                     }

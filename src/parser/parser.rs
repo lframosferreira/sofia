@@ -5,8 +5,8 @@ use super::token::{ArithmeticOp, BinaryOp, CompareOp, Numeral, Reserved, TokenTy
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Parameter {
-    type_: TokenType,
-    identifier: String,
+    pub type_: TokenType,
+    pub identifier: String,
 }
 
 #[derive(Serialize, Deserialize)]

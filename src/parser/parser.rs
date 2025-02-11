@@ -3,6 +3,12 @@ use serde::{Deserialize, Serialize};
 
 use super::token::{ArithmeticOp, BinaryOp, CompareOp, Numeral, Reserved, TokenType};
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Parameter {
+    type_: TokenType,
+    identifier: String,
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct Parser {
     tokens: Vec<Token>,
@@ -53,6 +59,8 @@ pub enum Declaration {
     FunctionDeclaration {
         name: Token,
         return_type: Token,
+        parameters: Vec<Parameter>,
+        body: Vec<Statement>,
     },
     VariableDeclaration {
         name: Token,
@@ -387,16 +395,29 @@ impl Parser {
     pub fn function_declaration(&mut self) -> Statement {
         // here we are taking the return type of the function. This is not okay, we should use
         // consume. We need a refactor in token.rs to create specific tokens for type definitions
-        let return_type = self.advance();
+        let return_type = self.advance().clone();
         let name = self.consume(TokenType::Identifier, "expect function name");
         self.consume(
             TokenType::LeftParen,
             "expect '(' after function name and type declaration",
         );
-        let mut parameters: Vec<Token> = vec![];
+        let mut parameters: Vec<Parameter> = vec![];
         if !self.check(&TokenType::RightParen) {
             loop {
-                parameters.push(self.consume(TokenType::Identifier, "expect parameter name"));
+                let parameter_type = self.consume_from_list(
+                    vec![
+                        TokenType::ReservedWord(Reserved::Bool),
+                        TokenType::ReservedWord(Reserved::Int),
+                        TokenType::ReservedWord(Reserved::Float),
+                        TokenType::ReservedWord(Reserved::String),
+                    ],
+                    "expected parameter type",
+                );
+                let parameter_name = self.consume(TokenType::Identifier, "expected parameter name");
+                parameters.push(Parameter {
+                    type_: parameter_type._type,
+                    identifier: parameter_name.value.clone().unwrap(),
+                });
                 if !self.match_up(vec![TokenType::Comma]) {
                     break;
                 }
@@ -408,11 +429,12 @@ impl Parser {
             "expect '{' before function body",
         );
         let body = self.block();
-        Statement::FunctionStatement {
+        Statement::Declaration(Declaration::FunctionDeclaration {
             name: name.clone(),
+            return_type: return_type.clone(),
             parameters: parameters.clone(),
             body: body.clone(),
-        }
+        })
     }
 
     pub fn declaration(&mut self) -> Statement {

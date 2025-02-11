@@ -1,4 +1,4 @@
-use crate::parser::parser::{Declaration, Expr, Statement};
+use crate::parser::parser::{Declaration, Expr, Parameter, Statement};
 use crate::parser::token::{ArithmeticOp, BinaryOp, Numeral, Reserved, Token, TokenType};
 
 #[derive(Debug, Clone)]
@@ -28,24 +28,37 @@ struct Variable {
     value: Value,
 }
 
+#[derive(Debug, Clone)]
+struct Function {
+    name: String,
+    return_type: TokenType,
+    parameters: Vec<Parameter>,
+    body: Vec<Statement>,
+}
+
 // vec of variables which, in this case, are identifiers only
+// vec of functions which, in this case, are identifiers only
 struct Environment {
     variables: Vec<Variable>,
+    functions: Vec<Function>,
 }
 
 impl Environment {
     pub fn new() -> Self {
-        return Environment { variables: vec![] };
+        return Environment {
+            variables: vec![],
+            functions: vec![],
+        };
     }
 
-    pub fn insert(&mut self, name: &String, value: &Value) {
+    pub fn insert_var(&mut self, name: &String, value: &Value) {
         self.variables.push(Variable {
             name: name.clone(),
             value: value.clone(),
         });
     }
 
-    pub fn find(&self, name: &String) -> &Variable {
+    pub fn find_var(&self, name: &String) -> &Variable {
         if let Some(variable) = self.variables.iter().rfind(|&x| x.name == *name) {
             return variable;
         } else {
@@ -53,7 +66,7 @@ impl Environment {
         }
     }
 
-    fn find_mut(&mut self, name: &String) -> &mut Variable {
+    fn find_var_mut(&mut self, name: &String) -> &mut Variable {
         if let Some(variable) = self.variables.iter_mut().rfind(|x| x.name == *name) {
             return variable;
         } else {
@@ -61,10 +74,35 @@ impl Environment {
         }
     }
 
-    pub fn change(&mut self, name: &String, value: &Value) {
-        let mut variable = self.find_mut(name);
+    pub fn change_var(&mut self, name: &String, value: &Value) {
+        let mut variable = self.find_var_mut(name);
         println!("{:?}", variable);
         variable.value = value.clone();
+    }
+
+    pub fn insert_fn(&mut self, name: &String, value: &Function) {
+        self.functions.push(value.clone());
+    }
+
+    pub fn find_fn(&self, name: &String) -> &Function {
+        if let Some(function) = self.functions.iter().rfind(|&x| x.name == *name) {
+            return function;
+        } else {
+            panic!("Function {:?} not declared", name);
+        }
+    }
+
+    fn find_fn_mut(&mut self, name: &String) -> &mut Function {
+        if let Some(function) = self.functions.iter_mut().rfind(|x| x.name == *name) {
+            return function;
+        } else {
+            panic!("Function {:?} not declared", name);
+        }
+    }
+
+    pub fn change_fn(&mut self, name: &String, value: &Function) {
+        let mut function = self.find_fn_mut(name);
+        *function = value.clone();
     }
 }
 
@@ -214,12 +252,13 @@ impl Interpreter {
             }
             Expr::Variable { value } => {
                 let identifier = value.value.clone().unwrap();
-                let variable = self.env.find(&identifier);
+                let variable = self.env.find_var(&identifier);
                 Some(variable.value.clone())
             }
             Expr::Assign { name, value } => {
                 if let Some(expr_value) = self.eval_expr(value) {
-                    self.env.change(&name.value.clone().unwrap(), &expr_value);
+                    self.env
+                        .change_var(&name.value.clone().unwrap(), &expr_value);
                     Some(expr_value)
                 } else {
                     panic!("Expression in assignment doesn't evaluate to anything, should be NIL in future");
@@ -237,12 +276,19 @@ impl Interpreter {
                 initializer_expr,
             } => {
                 if let Some(expr_value) = self.eval_expr(initializer_expr) {
-                    self.env.insert(&name.value.clone().unwrap(), &expr_value);
+                    self.env
+                        .insert_var(&name.value.clone().unwrap(), &expr_value);
                     Some(expr_value)
                 } else {
                     panic!("Expression in assignment doesn't evaluate to anything, should be NIL in future");
                 }
             }
+            Declaration::FunctionDeclaration {
+                name,
+                return_type,
+                parameters,
+                body,
+            } => None,
             _ => {
                 panic!("Not implemented for this declaration yet")
             }

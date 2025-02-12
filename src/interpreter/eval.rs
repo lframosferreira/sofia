@@ -78,7 +78,6 @@ impl Environment {
 
     pub fn change_var(&mut self, name: &String, value: &Value) {
         let mut variable = self.find_var_mut(name);
-        println!("{:?}", variable);
         variable.value = value.clone();
     }
 
@@ -455,6 +454,29 @@ impl Interpreter {
             Statement::Block { statements } => {
                 for stmt in statements.iter() {
                     self.eval_stmt(stmt);
+                }
+            }
+            Statement::WhileStatement { expr, stmt } => {
+                use Value::*;
+                loop {
+                    if let Some(expr_val) = self.eval_expr(expr) {
+                        if let Some(expr_b) = match expr_val {
+                            Bool(b) => Some(b),
+                            _ => None,
+                        } {
+                            if expr_b {
+                                self.eval_stmt(stmt);
+                            } else {
+                                break;
+                            }
+                        } else {
+                            panic!(
+                                "Expression inside while statement should evaluate to a boolean"
+                            );
+                        }
+                    } else {
+                        panic!("Expression inside while statement should evaluate to something");
+                    }
                 }
             }
             Statement::PrintStatement { expr } => {

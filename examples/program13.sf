@@ -1,0 +1,13 @@
+let int x =0;
+let int y=-12;
+let float t=6.0;
+let float e=5.6;
+
+func nil calc(){
+    if (x < y and t >= e){
+        print("lets bora");
+    }else{
+        if (y == -12) print(x);
+    }
+}
+calc();

@@ -9,3 +9,5 @@ func int soma(int x, int y, bool b){
 }
 
 print(soma(5, 6, False));
+let string txt = "Olá fifia";
+print(txt);

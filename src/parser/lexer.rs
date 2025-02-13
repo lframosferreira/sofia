@@ -193,7 +193,7 @@ pub fn tokenize(content: &[u8]) -> Vec<Token> {
             i += str.len();
             tokens.push(Token {
                 _type: TokenType::String,
-                value: Some(str),
+                value: Some(str[1..str.len() - 1].to_string()),
             });
             continue;
         }

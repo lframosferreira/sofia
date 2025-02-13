@@ -1,51 +1,88 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
-pub enum Numeral {
-    Int64,
-    Float64,
-}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum Token {
+    // An integer litheral
+    Int64(i64),
 
-// A reserved word in the Sofia language
-#[derive(Debug, PartialEq, Clone, Eq, Serialize, Deserialize)]
-pub enum Reserved {
+    // A float litheral
+    Float64(f64),
+
+    // A boolean litheral
+    BoolLit(bool),
+
+    // A string litheral
+    StringLit(String),
+
+    // The func kw
     Func,
-    Int,
-    Bool,
-    Float,
-    String,
-    Return,
-    If,
-    Else,
-    Let,
-    And,
-    Or,
-    Not,
-    While,
-    For,
-    Print,
-}
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum CompareOp {
+    // The int kw
+    Int,
+
+    // The bool kw
+    Bool,
+
+    // The float kw
+    Float,
+
+    // The string kw
+    String,
+
+    // The list kw
+    List,
+
+    // The return kw
+    Return,
+
+    // The if kw
+    If,
+
+    // The else kw
+    Else,
+
+    // The let kw
+    Let,
+
+    // The and kw
+    And,
+
+    // The or kw
+    Or,
+
+    // The not kw
+    Not,
+
+    // The while kw
+    While,
+
+    // The for kw
+    For,
+
+    // The print kw
+    Print,
+
     // !=
     BangEqual,
+
     // =
     Equal,
+
     // ==
     EqualEqual,
+
     // >
     Greater,
+
     // >=
     GreaterEqual,
+
     // <
     Less,
+
     // <=
     LessEqual,
-}
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ArithmeticOp {
     // Asterisk
     // *
     Asterisk,
@@ -65,17 +102,7 @@ pub enum ArithmeticOp {
     // Plus symbol
     // +
     Plus,
-}
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum BinaryOp {
-    CompareOperator(CompareOp),
-    ArithmeticOperator(ArithmeticOp),
-}
-
-// A token type in the Sofia language
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub enum TokenType {
     // Left parenthesis
     // (
     LeftParen,
@@ -92,24 +119,9 @@ pub enum TokenType {
     // ;
     Semicolon,
 
-    // A binary operator, such as arithmetic operators like '+' and compare operators like '='
-    BinaryOperator(BinaryOp),
-
     // An identifier for a variable/function
     // x, sum
-    Identifier,
-
-    // An integer numeral literal
-    // 42
-    Number(Numeral),
-
-    // A boolean literal
-    // True, False
-    Bool,
-
-    // A string literal
-    // "Hello world"
-    String,
+    Identifier(String),
 
     // {
     LeftCurlyBracket,
@@ -117,8 +129,11 @@ pub enum TokenType {
     // }
     RightCurlyBracket,
 
-    // A reversed word
-    ReservedWord(Reserved),
+    // [
+    LeftBracket,
+
+    // ]
+    RightBracket,
 
     // Represents a white space
     Whitespace,
@@ -131,22 +146,6 @@ pub enum TokenType {
     // \t
     Tab,
 
-    // Arrow
-    // ->
-    Arrow,
-
     // Nil
     Nil,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Token {
-    pub _type: TokenType,
-    pub value: Option<String>,
-}
-
-impl Token {
-    pub fn new(_type: TokenType, value: Option<String>) -> Token {
-        Token { _type, value }
-    }
 }

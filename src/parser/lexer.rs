@@ -1,99 +1,92 @@
 use std::process::exit;
 
-use crate::parser::token::{ArithmeticOp, BinaryOp, CompareOp, Reserved, Token, TokenType};
+use crate::parser::token::Token;
 
-fn check_reserved_word(buffer: &String) -> Option<Reserved> {
+fn check_reserved_word(buffer: &String) -> Option<Token> {
     match buffer.as_str() {
-        "func" => Some(Reserved::Func),
-        "int" => Some(Reserved::Int),
-        "float" => Some(Reserved::Float),
-        "bool" => Some(Reserved::Bool),
-        "string" => Some(Reserved::String),
-        "let" => Some(Reserved::Let),
-        "return" => Some(Reserved::Return),
-        "if" => Some(Reserved::If),
-        "else" => Some(Reserved::Else),
-        "and" => Some(Reserved::And),
-        "or" => Some(Reserved::Or),
-        "not" => Some(Reserved::Not),
-        "while" => Some(Reserved::While),
-        "for" => Some(Reserved::For),
-        "print" => Some(Reserved::Print),
+        "func" => Some(Token::Func),
+        "int" => Some(Token::Int),
+        "float" => Some(Token::Float),
+        "bool" => Some(Token::Bool),
+        "list" => Some(Token::List),
+        "string" => Some(Token::String),
+        "let" => Some(Token::Let),
+        "return" => Some(Token::Return),
+        "if" => Some(Token::If),
+        "else" => Some(Token::Else),
+        "and" => Some(Token::And),
+        "or" => Some(Token::Or),
+        "not" => Some(Token::Not),
+        "while" => Some(Token::While),
+        "for" => Some(Token::For),
+        "print" => Some(Token::Print),
         _ => None,
     }
 }
 
-fn check_compare_operator(content: &[u8], i: usize) -> Option<CompareOp> {
+fn check_compare_operator(content: &[u8], i: usize) -> Option<Token> {
     let c = content[i];
     if c == b'!' {
         if i + 1 >= content.len() || content[i + 1] != b'=' {
             eprintln!("The ! operator should have a = after it");
             exit(1);
         }
-        Some(CompareOp::BangEqual);
+        Some(Token::BangEqual);
     }
     if c == b'=' {
         if i + 1 >= content.len() {
-            return Some(CompareOp::Equal);
+            return Some(Token::Equal);
         } else {
             if content[i + 1] == b'=' {
-                return Some(CompareOp::EqualEqual);
+                return Some(Token::EqualEqual);
             } else {
-                return Some(CompareOp::Equal);
+                return Some(Token::Equal);
             }
         }
     }
     if c == b'>' {
         if i + 1 >= content.len() {
-            return Some(CompareOp::Greater);
+            return Some(Token::Greater);
         } else {
             if content[i + 1] == b'=' {
-                return Some(CompareOp::GreaterEqual);
+                return Some(Token::GreaterEqual);
             } else {
-                return Some(CompareOp::Greater);
+                return Some(Token::Greater);
             }
         }
     }
     if c == b'<' {
         if i + 1 >= content.len() {
-            return Some(CompareOp::Less);
+            return Some(Token::Less);
         } else {
             if content[i + 1] == b'=' {
-                return Some(CompareOp::LessEqual);
+                return Some(Token::LessEqual);
             } else {
-                return Some(CompareOp::Less);
+                return Some(Token::Less);
             }
         }
     }
     None
 }
 
-fn check_single_char_token(content: &[u8], i: usize) -> Option<TokenType> {
+fn check_single_char_token(content: &[u8], i: usize) -> Option<Token> {
     match content[i] {
-        b' ' => Some(TokenType::Whitespace),
-        b';' => Some(TokenType::Semicolon),
-        b'{' => Some(TokenType::LeftCurlyBracket),
-        b'}' => Some(TokenType::RightCurlyBracket),
-        b'(' => Some(TokenType::LeftParen),
-        b')' => Some(TokenType::RightParen),
-        b'+' => Some(TokenType::BinaryOperator(BinaryOp::ArithmeticOperator(
-            ArithmeticOp::Plus,
-        ))),
-        b'-' => Some(TokenType::BinaryOperator(BinaryOp::ArithmeticOperator(
-            ArithmeticOp::Minus,
-        ))),
-        b'*' => Some(TokenType::BinaryOperator(BinaryOp::ArithmeticOperator(
-            ArithmeticOp::Asterisk,
-        ))),
-        b'/' => Some(TokenType::BinaryOperator(BinaryOp::ArithmeticOperator(
-            ArithmeticOp::Slash,
-        ))),
-        b'%' => Some(TokenType::BinaryOperator(BinaryOp::ArithmeticOperator(
-            ArithmeticOp::Modulo,
-        ))),
-        b',' => Some(TokenType::Comma),
-        b'\t' => Some(TokenType::Tab),
-        b'\n' => Some(TokenType::Newline),
+        b' ' => Some(Token::Whitespace),
+        b';' => Some(Token::Semicolon),
+        b'{' => Some(Token::LeftCurlyBracket),
+        b'}' => Some(Token::RightCurlyBracket),
+        b'[' => Some(Token::LeftBracket),
+        b']' => Some(Token::RightBracket),
+        b'(' => Some(Token::LeftParen),
+        b')' => Some(Token::RightParen),
+        b'+' => Some(Token::Plus),
+        b'-' => Some(Token::Minus),
+        b'*' => Some(Token::Asterisk),
+        b'/' => Some(Token::Slash),
+        b'%' => Some(Token::Modulo),
+        b',' => Some(Token::Comma),
+        b'\t' => Some(Token::Tab),
+        b'\n' => Some(Token::Newline),
         _ => None,
     }
 }
@@ -144,46 +137,25 @@ pub fn tokenize(content: &[u8]) -> Vec<Token> {
         if let Some(single_char_token) = check_single_char_token(&content, i) {
             i += 1;
             // for now we are ignoring tabs and new lines and blank spaces
-            if single_char_token == TokenType::Newline
-                || single_char_token == TokenType::Tab
-                || single_char_token == TokenType::Whitespace
+            if single_char_token == Token::Newline
+                || single_char_token == Token::Tab
+                || single_char_token == Token::Whitespace
             {
                 continue;
             }
-            tokens.push(Token {
-                _type: single_char_token,
-                value: None,
-            });
+            tokens.push(single_char_token);
             continue;
-        }
-
-        // we now check for the fucking arrow
-        // I REMOVED THE ARROW
-        if c == b'-' {
-            if i + 1 >= content.len() || content[i + 1] != b'>' {
-                eprintln!("- should have > after it to form the arrow operator");
-                exit(1);
-            } else {
-                i += 2;
-                tokens.push(Token {
-                    _type: TokenType::Arrow,
-                    value: None,
-                })
-            }
         }
 
         // we then check for compare operators
         if let Some(compare_op) = check_compare_operator(&content, i) {
             let increment = match compare_op {
-                CompareOp::Less => 1,
-                CompareOp::Equal => 1,
-                CompareOp::Greater => 1,
+                Token::Less => 1,
+                Token::Equal => 1,
+                Token::Greater => 1,
                 _ => 2,
             };
-            tokens.push(Token {
-                _type: TokenType::BinaryOperator(BinaryOp::CompareOperator(compare_op)),
-                value: None,
-            });
+            tokens.push(compare_op);
             i += increment;
             continue;
         }
@@ -191,10 +163,7 @@ pub fn tokenize(content: &[u8]) -> Vec<Token> {
         // checking for strings
         if let Some(str) = check_string(&content, i) {
             i += str.len();
-            tokens.push(Token {
-                _type: TokenType::String,
-                value: Some(str[1..str.len() - 1].to_string()),
-            });
+            tokens.push(Token::StringLit(str[1..str.len() - 1].to_string()));
             continue;
         }
 
@@ -218,20 +187,14 @@ pub fn tokenize(content: &[u8]) -> Vec<Token> {
             }
             // check reserved word and continue
             if let Some(reserved) = check_reserved_word(&buffer) {
-                tokens.push(Token {
-                    _type: TokenType::ReservedWord(reserved),
-                    value: None,
-                });
+                tokens.push(reserved);
             } else if check_bool_literal(&buffer) {
-                tokens.push(Token {
-                    _type: TokenType::Bool,
-                    value: Some(buffer.clone()),
-                });
+                tokens.push(Token::BoolLit(match buffer.as_str() {
+                    "True" => true,
+                    _ => false,
+                }));
             } else {
-                tokens.push(Token {
-                    _type: TokenType::Identifier,
-                    value: Some(buffer.clone()),
-                });
+                tokens.push(Token::Identifier(buffer.clone()));
             }
             buffer.clear();
             continue;
@@ -247,10 +210,11 @@ pub fn tokenize(content: &[u8]) -> Vec<Token> {
                 i += 1;
             }
             if i >= content.len() {
-                tokens.push(Token {
-                    _type: TokenType::Number(super::token::Numeral::Int64),
-                    value: Some(buffer.clone()),
-                });
+                tokens.push(Token::Int64(
+                    buffer
+                        .parse::<i64>()
+                        .expect("Error while parsing int64 during lexing phase"),
+                ));
                 buffer.clear();
                 return tokens;
             }
@@ -279,10 +243,11 @@ pub fn tokenize(content: &[u8]) -> Vec<Token> {
                     );
                     exit(1);
                 } else {
-                    tokens.push(Token {
-                        _type: TokenType::Number(super::token::Numeral::Float64),
-                        value: Some(buffer.clone()),
-                    });
+                    tokens.push(Token::Float64(
+                        buffer
+                            .parse::<f64>()
+                            .expect("Error while parsing float64 during lexing phase"),
+                    ));
                 }
             } else if c == b' '
                 || c == b';'
@@ -293,10 +258,11 @@ pub fn tokenize(content: &[u8]) -> Vec<Token> {
                 || content[i] != b'%'
                 || content[i] != b'*'
             {
-                tokens.push(Token {
-                    _type: TokenType::Number(super::token::Numeral::Int64),
-                    value: Some(buffer.clone()),
-                });
+                tokens.push(Token::Int64(
+                    buffer
+                        .parse::<i64>()
+                        .expect("Error while parsing int64 during lexing phase"),
+                ));
             } else {
                 eprintln!("Numbers should contains only digits and, in case of floats, a single .");
                 exit(1);

@@ -1,1 +1,5 @@
-1. Check if for loops are working with blocking delimiters with {}
+1. Strings in parsing are keeping the ""
+2. Syntax highlighting
+3. CLI
+4. runtime folder with some operations such as IO
+5. Compiler with LLVM: in a distant future

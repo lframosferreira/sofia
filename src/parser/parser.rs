@@ -1,12 +1,19 @@
 use crate::parser::token::Token;
 use serde::{Deserialize, Serialize};
 
-use super::token::{ArithmeticOp, BinaryOp, CompareOp, Numeral, Reserved, TokenType};
+#[derive(Clone, Debug, Serialize, Deserialize)]
+enum VarType {
+    Int64,
+    Float64,
+    Bool,
+    String,
+    List,
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Parameter {
-    pub type_: TokenType,
-    pub identifier: String,
+    pub type_token: Token,
+    pub identifier_token: Token,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -126,32 +133,32 @@ impl Parser {
         self.tokens[self.index - 1].clone()
     }
 
-    fn consume(&mut self, token_type: TokenType, message: &str) -> Token {
-        if self.check(&token_type) {
+    fn consume(&mut self, token: Token, message: &str) -> Token {
+        if self.check(&token) {
             return self.advance().clone();
         }
         panic!("{message}")
     }
 
-    fn consume_from_list(&mut self, token_type_list: Vec<TokenType>, message: &str) -> Token {
-        for token_type in token_type_list.iter() {
-            if self.check(&token_type) {
+    fn consume_from_list(&mut self, token_list: &[Token], message: &str) -> Token {
+        for token in token_list.iter() {
+            if self.check(&token) {
                 return self.advance().clone();
             }
         }
         panic!("{message}")
     }
 
-    fn check(&self, token_type: &TokenType) -> bool {
-        if let Some(token) = self.peek() {
-            return token._type == *token_type;
+    fn check(&self, token: &Token) -> bool {
+        if let Some(token_peeked) = self.peek() {
+            return std::mem::discriminant(token) == std::mem::discriminant(token_peeked);
         }
         false
     }
 
-    fn match_up(&mut self, token_types: Vec<TokenType>) -> bool {
-        for token_type in token_types {
-            if self.check(&token_type) {
+    fn match_up(&mut self, tokens: &[Token]) -> bool {
+        for token in tokens.iter() {
+            if self.check(&token) {
                 self.advance();
                 return true;
             }
@@ -160,24 +167,24 @@ impl Parser {
     }
 
     pub fn primary(&mut self) -> Expr {
-        if self.match_up(vec![
-            TokenType::Number(Numeral::Int64),
-            TokenType::Number(Numeral::Float64),
-            TokenType::Bool,
-            TokenType::String,
+        if self.match_up(&[
+            Token::Int64(0),
+            Token::Float64(0.0),
+            Token::BoolLit(true),
+            Token::StringLit("".to_string()),
         ]) {
             return Expr::Litheral {
                 value: self.previous(),
             };
         }
-        if self.match_up(vec![TokenType::Identifier]) {
+        if self.match_up(&[Token::Identifier("".to_string())]) {
             return Expr::Variable {
                 value: self.previous(),
             };
         }
-        if self.match_up(vec![TokenType::LeftParen]) {
+        if self.match_up(&[Token::LeftParen]) {
             let expr = self.expression();
-            self.consume(TokenType::RightParen, "we need a closeing right paren");
+            self.consume(Token::RightParen, "we need a closeing right paren");
             return Expr::Grouping {
                 middle: Box::new(expr),
             };
@@ -187,15 +194,15 @@ impl Parser {
 
     pub fn finish_call(&mut self, callee: Expr) -> Expr {
         let mut arguments: Vec<Expr> = vec![];
-        if !self.check(&TokenType::RightParen) {
+        if !self.check(&Token::RightParen) {
             loop {
                 arguments.push(self.expression());
-                if !self.match_up(vec![TokenType::Comma]) {
+                if !self.match_up(&[Token::Comma]) {
                     break;
                 }
             }
         }
-        let paren = self.consume(TokenType::RightParen, "expect ')' after arguments");
+        let paren = self.consume(Token::RightParen, "expect ')' after arguments");
         Expr::Call {
             callee: Box::new(callee),
             paren: paren.clone(),
@@ -206,7 +213,7 @@ impl Parser {
     pub fn call(&mut self) -> Expr {
         let mut expr = self.primary();
         loop {
-            if self.match_up(vec![TokenType::LeftParen]) {
+            if self.match_up(&[Token::LeftParen]) {
                 expr = self.finish_call(expr);
             } else {
                 break;
@@ -216,10 +223,7 @@ impl Parser {
     }
 
     pub fn unary(&mut self) -> Expr {
-        if self.match_up(vec![
-            TokenType::ReservedWord(Reserved::Not),
-            TokenType::BinaryOperator(BinaryOp::ArithmeticOperator(ArithmeticOp::Minus)),
-        ]) {
+        if self.match_up(&[Token::Not, Token::Minus]) {
             let operator = self.previous();
             let rhs = self.unary();
             return Expr::UnaryExpr {
@@ -232,11 +236,10 @@ impl Parser {
 
     pub fn factor(&mut self) -> Expr {
         let mut expr = self.unary();
-        let asterisk =
-            TokenType::BinaryOperator(BinaryOp::ArithmeticOperator(ArithmeticOp::Asterisk));
-        let slash = TokenType::BinaryOperator(BinaryOp::ArithmeticOperator(ArithmeticOp::Slash));
-        let modulo = TokenType::BinaryOperator(BinaryOp::ArithmeticOperator(ArithmeticOp::Modulo));
-        while self.match_up(vec![asterisk.clone(), slash.clone(), modulo.clone()]) {
+        let asterisk = Token::Asterisk;
+        let slash = Token::Slash;
+        let modulo = Token::Modulo;
+        while self.match_up(&[asterisk.clone(), slash.clone(), modulo.clone()]) {
             let operator = self.previous();
             let rhs = self.unary();
             expr = Expr::BinaryExpr {
@@ -250,9 +253,9 @@ impl Parser {
 
     pub fn term(&mut self) -> Expr {
         let mut expr = self.factor();
-        let minus = TokenType::BinaryOperator(BinaryOp::ArithmeticOperator(ArithmeticOp::Minus));
-        let plus = TokenType::BinaryOperator(BinaryOp::ArithmeticOperator(ArithmeticOp::Plus));
-        while self.match_up(vec![minus.clone(), plus.clone()]) {
+        let minus = Token::Minus;
+        let plus = Token::Plus;
+        while self.match_up(&[minus.clone(), plus.clone()]) {
             let operator = self.previous();
             let rhs = self.factor();
             expr = Expr::BinaryExpr {
@@ -266,12 +269,11 @@ impl Parser {
 
     pub fn comparison(&mut self) -> Expr {
         let mut expr = self.term();
-        let greater = TokenType::BinaryOperator(BinaryOp::CompareOperator(CompareOp::Greater));
-        let greater_equal =
-            TokenType::BinaryOperator(BinaryOp::CompareOperator(CompareOp::GreaterEqual));
-        let less = TokenType::BinaryOperator(BinaryOp::CompareOperator(CompareOp::Less));
-        let less_equal = TokenType::BinaryOperator(BinaryOp::CompareOperator(CompareOp::LessEqual));
-        while self.match_up(vec![
+        let greater = Token::Greater;
+        let greater_equal = Token::GreaterEqual;
+        let less = Token::Less;
+        let less_equal = Token::LessEqual;
+        while self.match_up(&[
             greater.clone(),
             greater_equal.clone(),
             less.clone(),
@@ -288,13 +290,11 @@ impl Parser {
         expr
     }
 
-    // I should porbably use a macro here in the vec! parameter
     pub fn equality(&mut self) -> Expr {
         let mut expr = self.comparison();
-        let bang_equal = TokenType::BinaryOperator(BinaryOp::CompareOperator(CompareOp::BangEqual));
-        let equal_equal =
-            TokenType::BinaryOperator(BinaryOp::CompareOperator(CompareOp::EqualEqual));
-        while self.match_up(vec![bang_equal.clone(), equal_equal.clone()]) {
+        let bang_equal = Token::BangEqual;
+        let equal_equal = Token::EqualEqual;
+        while self.match_up(&[bang_equal.clone(), equal_equal.clone()]) {
             let operator = self.previous();
             let rhs = self.comparison();
             expr = Expr::BinaryExpr {
@@ -308,7 +308,7 @@ impl Parser {
 
     pub fn and(&mut self) -> Expr {
         let mut expr = self.equality();
-        while self.match_up(vec![TokenType::ReservedWord(Reserved::And)]) {
+        while self.match_up(&[Token::And]) {
             let operator = self.previous();
             let rhs = self.equality();
             expr = Expr::Logical {
@@ -323,7 +323,7 @@ impl Parser {
     pub fn or(&mut self) -> Expr {
         let mut expr = self.and();
 
-        while self.match_up(vec![TokenType::ReservedWord(Reserved::Or)]) {
+        while self.match_up(&[Token::Or]) {
             let operator = self.previous();
             let rhs = self.and();
             expr = Expr::Logical {
@@ -337,9 +337,7 @@ impl Parser {
 
     pub fn assignment(&mut self) -> Expr {
         let expr = self.or();
-        if self.match_up(vec![TokenType::BinaryOperator(BinaryOp::CompareOperator(
-            CompareOp::Equal,
-        ))]) {
+        if self.match_up(&[Token::Equal]) {
             let equals = self.previous();
             let assig_value = self.assignment();
 
@@ -360,28 +358,21 @@ impl Parser {
     pub fn print_statement(&mut self) -> Statement {
         let expr = self.expression(); // here we are accepting any kind of expression but it should
                                       // be only groupings
-        self.consume(TokenType::Semicolon, "expect ';' after value");
+        self.consume(Token::Semicolon, "expect ';' after value");
         Statement::PrintStatement { expr }
     }
 
     pub fn variable_declaration(&mut self) -> Statement {
         let var_type = self.consume_from_list(
-            vec![
-                TokenType::ReservedWord(Reserved::Bool),
-                TokenType::ReservedWord(Reserved::Int),
-                TokenType::ReservedWord(Reserved::Float),
-                TokenType::ReservedWord(Reserved::String),
-            ],
+            &[Token::Bool, Token::Int, Token::Float, Token::String],
             "expect variable type",
         );
-        let name = self.consume(TokenType::Identifier, "expect variable name.");
+        let name = self.consume(Token::Identifier("".to_string()), "expect variable name.");
         let mut initializer: Option<Expr> = None;
-        if self.match_up(vec![TokenType::BinaryOperator(BinaryOp::CompareOperator(
-            CompareOp::Equal,
-        ))]) {
+        if self.match_up(&[Token::Equal]) {
             initializer = Some(self.expression());
         }
-        self.consume(TokenType::Semicolon, "expect ';' after var declaration.");
+        self.consume(Token::Semicolon, "expect ';' after var declaration.");
         Statement::Declaration(Declaration::VariableDeclaration {
             name: name.clone(),
             type_: var_type,
@@ -393,38 +384,31 @@ impl Parser {
         // here we are taking the return type of the function. This is not okay, we should use
         // consume. We need a refactor in token.rs to create specific tokens for type definitions
         let return_type = self.advance().clone();
-        let name = self.consume(TokenType::Identifier, "expect function name");
+        let name = self.consume(Token::Identifier("".to_string()), "expect function name");
         self.consume(
-            TokenType::LeftParen,
+            Token::LeftParen,
             "expect '(' after function name and type declaration",
         );
         let mut parameters: Vec<Parameter> = vec![];
-        if !self.check(&TokenType::RightParen) {
+        if !self.check(&Token::RightParen) {
             loop {
                 let parameter_type = self.consume_from_list(
-                    vec![
-                        TokenType::ReservedWord(Reserved::Bool),
-                        TokenType::ReservedWord(Reserved::Int),
-                        TokenType::ReservedWord(Reserved::Float),
-                        TokenType::ReservedWord(Reserved::String),
-                    ],
+                    &[Token::Bool, Token::Int, Token::Float, Token::String],
                     "expected parameter type",
                 );
-                let parameter_name = self.consume(TokenType::Identifier, "expected parameter name");
+                let parameter_name =
+                    self.consume(Token::Identifier("".to_string()), "expected parameter name");
                 parameters.push(Parameter {
-                    type_: parameter_type._type,
-                    identifier: parameter_name.value.clone().unwrap(),
+                    type_token: parameter_type,
+                    identifier_token: parameter_name,
                 });
-                if !self.match_up(vec![TokenType::Comma]) {
+                if !self.match_up(&[Token::Comma]) {
                     break;
                 }
             }
         }
-        self.consume(TokenType::RightParen, "expect ')' after parameters");
-        self.consume(
-            TokenType::LeftCurlyBracket,
-            "expect '{' before function body",
-        );
+        self.consume(Token::RightParen, "expect ')' after parameters");
+        self.consume(Token::LeftCurlyBracket, "expect '{' before function body");
         let body = self.block();
         Statement::Declaration(Declaration::FunctionDeclaration {
             name: name.clone(),
@@ -435,10 +419,10 @@ impl Parser {
     }
 
     pub fn declaration(&mut self) -> Statement {
-        if self.match_up(vec![TokenType::ReservedWord(Reserved::Let)]) {
+        if self.match_up(&[Token::Let]) {
             return self.variable_declaration();
         }
-        if self.match_up(vec![TokenType::ReservedWord(Reserved::Func)]) {
+        if self.match_up(&[Token::Func]) {
             return self.function_declaration();
         } else {
             return self.statement();
@@ -447,26 +431,26 @@ impl Parser {
 
     pub fn expr_statement(&mut self) -> Statement {
         let expr = self.expression();
-        self.consume(TokenType::Semicolon, "expect ';' after value");
+        self.consume(Token::Semicolon, "expect ';' after value");
         Statement::ExprStatement { expr }
     }
 
     pub fn block(&mut self) -> Vec<Statement> {
         let mut statements: Vec<Statement> = vec![];
-        while !self.check(&TokenType::RightCurlyBracket) & !self.is_at_end() {
+        while !self.check(&Token::RightCurlyBracket) & !self.is_at_end() {
             statements.push(self.declaration());
         }
-        self.consume(TokenType::RightCurlyBracket, "expect '}' after block");
+        self.consume(Token::RightCurlyBracket, "expect '}' after block");
         statements
     }
 
     pub fn if_statement(&mut self) -> Statement {
-        self.consume(TokenType::LeftParen, "expect '(' after if");
+        self.consume(Token::LeftParen, "expect '(' after if");
         let condition = self.expression();
-        self.consume(TokenType::RightParen, "expect')' after if condition");
+        self.consume(Token::RightParen, "expect')' after if condition");
         let then_branch = self.statement();
         let mut else_branch: Option<Statement> = None;
-        if self.match_up(vec![TokenType::ReservedWord(Reserved::Else)]) {
+        if self.match_up(&[Token::Else]) {
             else_branch = Some(self.statement());
         }
         Statement::IfStatement {
@@ -480,9 +464,9 @@ impl Parser {
     }
 
     pub fn while_statement(&mut self) -> Statement {
-        self.consume(TokenType::LeftParen, "expect '(' after while");
+        self.consume(Token::LeftParen, "expect '(' after while");
         let condition = self.expression();
-        self.consume(TokenType::RightParen, "expect ')' after condition");
+        self.consume(Token::RightParen, "expect ')' after condition");
         let body = self.statement();
         Statement::WhileStatement {
             initializer: None,
@@ -492,27 +476,27 @@ impl Parser {
     }
 
     pub fn for_statement(&mut self) -> Statement {
-        self.consume(TokenType::LeftParen, "expect '(' after for");
+        self.consume(Token::LeftParen, "expect '(' after for");
         let mut initializer: Option<Statement> = None;
-        if self.match_up(vec![TokenType::Semicolon]) {
+        if self.match_up(&[Token::Semicolon]) {
             initializer = None;
-        } else if self.match_up(vec![TokenType::ReservedWord(Reserved::Let)]) {
+        } else if self.match_up(&[Token::Let]) {
             initializer = Some(self.variable_declaration());
         } else {
             initializer = Some(self.expr_statement());
         }
 
         let mut condition: Option<Expr> = None;
-        if !self.check(&TokenType::Semicolon) {
+        if !self.check(&Token::Semicolon) {
             condition = Some(self.expression());
         }
 
-        self.consume(TokenType::Semicolon, "expect ';' after loop condition");
+        self.consume(Token::Semicolon, "expect ';' after loop condition");
         let mut increment: Option<Expr> = None;
-        if !self.check(&TokenType::RightParen) {
+        if !self.check(&Token::RightParen) {
             increment = Some(self.expression());
         }
-        self.consume(TokenType::RightParen, "expect ')' after for clauses");
+        self.consume(Token::RightParen, "expect ')' after for clauses");
         let mut body = self.statement();
         if let Some(inc) = increment {
             body = Statement::Block {
@@ -521,7 +505,7 @@ impl Parser {
         }
         if condition.is_none() {
             condition = Some(Expr::Litheral {
-                value: Token::new(TokenType::Bool, Some("True".to_string())),
+                value: Token::BoolLit(true),
             });
             body = Statement::WhileStatement {
                 initializer: match initializer {
@@ -547,27 +531,27 @@ impl Parser {
     pub fn return_statement(&mut self) -> Statement {
         let keyword = self.previous();
         let mut value: Option<Expr> = None;
-        if !self.check(&TokenType::Semicolon) {
+        if !self.check(&Token::Semicolon) {
             value = Some(self.expression());
         }
-        self.consume(TokenType::Semicolon, "expect ';' after return value");
+        self.consume(Token::Semicolon, "expect ';' after return value");
         Statement::ReturnStatement { expr: value }
     }
 
     pub fn statement(&mut self) -> Statement {
-        if self.match_up(vec![TokenType::ReservedWord(Reserved::Print)]) {
+        if self.match_up(&[Token::Print]) {
             return self.print_statement();
-        } else if self.match_up(vec![TokenType::LeftCurlyBracket]) {
+        } else if self.match_up(&[Token::LeftCurlyBracket]) {
             return Statement::Block {
                 statements: self.block(),
             };
-        } else if self.match_up(vec![TokenType::ReservedWord(Reserved::If)]) {
+        } else if self.match_up(&[Token::If]) {
             return self.if_statement();
-        } else if self.match_up(vec![TokenType::ReservedWord(Reserved::While)]) {
+        } else if self.match_up(&[Token::While]) {
             return self.while_statement();
-        } else if self.match_up(vec![TokenType::ReservedWord(Reserved::For)]) {
+        } else if self.match_up(&[Token::For]) {
             return self.for_statement();
-        } else if self.match_up(vec![TokenType::ReservedWord(Reserved::Return)]) {
+        } else if self.match_up(&[Token::Return]) {
             return self.return_statement();
         } else {
             return self.expr_statement();

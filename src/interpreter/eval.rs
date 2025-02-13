@@ -1,7 +1,5 @@
 use crate::parser::parser::{Declaration, Expr, Parameter, Statement};
-use crate::parser::token::{
-    ArithmeticOp, BinaryOp, CompareOp, Numeral, Reserved, Token, TokenType,
-};
+use crate::parser::token::Token;
 
 #[derive(Debug, Clone)]
 enum Value {
@@ -37,7 +35,7 @@ struct Variable {
 #[derive(Debug, Clone)]
 struct Function {
     name: String,
-    return_type: TokenType,
+    return_type: Token,
     parameters: Vec<Parameter>,
     body: Vec<Statement>,
 }
@@ -101,62 +99,44 @@ impl Interpreter {
     fn eval_expr(&mut self, expr: &Expr) -> Option<Value> {
         match expr {
             Expr::Grouping { middle } => self.eval_expr(middle),
-            Expr::Litheral { value } => match value._type {
-                TokenType::String => Some(Value::Str(value.value.clone().unwrap())),
-                TokenType::Number(Numeral::Int64) => Some(Value::Int64(
-                    value.value.clone().unwrap().parse::<i64>().expect(
-                        "Error parsing integer 64 from string while evaluating integer litheral",
-                    ),
-                )),
-                TokenType::Number(Numeral::Float64) => Some(Value::Float64(
-                    value.value.clone().unwrap().parse::<f64>().expect(
-                        "Error parsing float 64 from string while evaluating integer litheral",
-                    ),
-                )),
-                TokenType::Bool => Some(Value::Bool(if value.value.clone().unwrap() == "True" {
-                    true
-                } else {
-                    false
-                })),
+            Expr::Litheral { value } => match value {
+                Token::StringLit(s) => Some(Value::Str(s.to_string())),
+                Token::Int64(i) => Some(Value::Int64(*i)),
+                Token::Float64(f) => Some(Value::Float64(*f)),
+                Token::BoolLit(b) => Some(Value::Bool(*b)),
                 _ => None,
             },
             Expr::Logical { op, lhs, rhs } => {
                 let lhs_val = self.eval_expr(lhs).unwrap();
                 let rhs_val = self.eval_expr(rhs).unwrap();
                 use Value::*;
-                match op._type {
-                    TokenType::ReservedWord(Reserved::And) => {
-                        match (lhs_val.clone(), rhs_val.clone()) {
-                            (Bool(l), Bool(r)) => Some(Bool(l && r)),
-                            _ => {
-                                panic!("Can't use logical operator if both sides are not booleans")
-                            }
+                match op {
+                    Token::And => match (lhs_val.clone(), rhs_val.clone()) {
+                        (Bool(l), Bool(r)) => Some(Bool(l && r)),
+                        _ => {
+                            panic!("Can't use logical operator if both sides are not booleans")
                         }
-                    }
-                    TokenType::ReservedWord(Reserved::Or) => {
-                        match (lhs_val.clone(), rhs_val.clone()) {
-                            (Bool(l), Bool(r)) => Some(Bool(l || r)),
-                            _ => {
-                                panic!("Can't use logical operator if both sides are not booleans")
-                            }
+                    },
+                    Token::Or => match (lhs_val.clone(), rhs_val.clone()) {
+                        (Bool(l), Bool(r)) => Some(Bool(l || r)),
+                        _ => {
+                            panic!("Can't use logical operator if both sides are not booleans")
                         }
-                    }
+                    },
                     _ => None,
                 }
             }
             Expr::UnaryExpr { op, child } => {
                 if let Some(expr_val) = self.eval_expr(child) {
-                    match op._type {
-                        TokenType::ReservedWord(Reserved::Not) => {
+                    match op {
+                        Token::Not => {
                             if let Value::Bool(b) = expr_val {
                                 return Some(Value::Bool(!b));
                             } else {
                                 panic!("unary expression not must be used in boolean");
                             }
                         }
-                        TokenType::BinaryOperator(BinaryOp::ArithmeticOperator(
-                            ArithmeticOp::Minus,
-                        )) => {
+                        Token::Minus => {
                             if let Value::Int64(i) = expr_val {
                                 return Some(Value::Int64(-1 * i));
                             } else if let Value::Float64(f) = expr_val {
@@ -174,19 +154,15 @@ impl Interpreter {
                 let lhs_val = self.eval_expr(lhs).unwrap();
                 let rhs_val = self.eval_expr(rhs).unwrap();
                 use Value::*;
-                match op._type {
-                    TokenType::BinaryOperator(BinaryOp::ArithmeticOperator(ArithmeticOp::Plus)) => {
-                        match (lhs_val.clone(), rhs_val.clone()) {
-                            (Int64(l), Int64(r)) => Some(Int64(l + r)),
-                            (UInt64(l), UInt64(r)) => Some(UInt64(l + r)),
-                            (Float64(l), Float64(r)) => Some(Float64(l + r)),
-                            (Str(l), Str(r)) => Some(Str(format!("{}{}", l, r))),
-                            _ => panic!("Can't sum value variant {:?} with {:?}", lhs_val, rhs_val),
-                        }
-                    }
-                    TokenType::BinaryOperator(BinaryOp::ArithmeticOperator(
-                        ArithmeticOp::Minus,
-                    )) => match (lhs_val.clone(), rhs_val.clone()) {
+                match op {
+                    Token::Plus => match (lhs_val.clone(), rhs_val.clone()) {
+                        (Int64(l), Int64(r)) => Some(Int64(l + r)),
+                        (UInt64(l), UInt64(r)) => Some(UInt64(l + r)),
+                        (Float64(l), Float64(r)) => Some(Float64(l + r)),
+                        (Str(l), Str(r)) => Some(Str(format!("{}{}", l, r))),
+                        _ => panic!("Can't sum value variant {:?} with {:?}", lhs_val, rhs_val),
+                    },
+                    Token::Minus => match (lhs_val.clone(), rhs_val.clone()) {
                         (Int64(l), Int64(r)) => Some(Int64(l - r)),
                         (UInt64(l), UInt64(r)) => Some(UInt64(l - r)),
                         (Float64(l), Float64(r)) => Some(Float64(l - r)),
@@ -196,9 +172,7 @@ impl Interpreter {
                             lhs_val, rhs_val
                         ),
                     },
-                    TokenType::BinaryOperator(BinaryOp::ArithmeticOperator(
-                        ArithmeticOp::Asterisk,
-                    )) => match (lhs_val.clone(), rhs_val.clone()) {
+                    Token::Asterisk => match (lhs_val.clone(), rhs_val.clone()) {
                         (Int64(l), Int64(r)) => Some(Int64(l * r)),
                         (UInt64(l), UInt64(r)) => Some(UInt64(l * r)),
                         (Float64(l), Float64(r)) => Some(Float64(l * r)),
@@ -207,9 +181,7 @@ impl Interpreter {
                             lhs_val, rhs_val
                         ),
                     },
-                    TokenType::BinaryOperator(BinaryOp::ArithmeticOperator(
-                        ArithmeticOp::Slash,
-                    )) => match (lhs_val.clone(), rhs_val.clone()) {
+                    Token::Slash => match (lhs_val.clone(), rhs_val.clone()) {
                         (Int64(l), Int64(r)) => Some(Int64(l / r)),
                         (UInt64(l), UInt64(r)) => Some(UInt64(l / r)),
                         (Float64(l), Float64(r)) => Some(Float64(l / r)),
@@ -218,9 +190,7 @@ impl Interpreter {
                             lhs_val, rhs_val
                         ),
                     },
-                    TokenType::BinaryOperator(BinaryOp::ArithmeticOperator(
-                        ArithmeticOp::Modulo,
-                    )) => match (lhs_val.clone(), rhs_val.clone()) {
+                    Token::Modulo => match (lhs_val.clone(), rhs_val.clone()) {
                         (Int64(l), Int64(r)) => Some(Int64(l % r)),
                         (UInt64(l), UInt64(r)) => Some(UInt64(l % r)),
                         _ => panic!(
@@ -228,45 +198,37 @@ impl Interpreter {
                             lhs_val, rhs_val
                         ),
                     },
-                    TokenType::BinaryOperator(BinaryOp::CompareOperator(CompareOp::Less)) => {
-                        match (lhs_val.clone(), rhs_val.clone()) {
-                            (Int64(l), Int64(r)) => Some(Bool(l < r)),
-                            (UInt64(l), UInt64(r)) => Some(Bool(l < r)),
-                            (Float64(l), Float64(r)) => Some(Bool(l < r)),
-                            (Str(l), Str(r)) => Some(Bool(l < r)),
-                            _ => panic!(
-                                "Can't use < (less than) in value variant {:?} with {:?}",
-                                lhs_val, rhs_val
-                            ),
-                        }
-                    }
-                    TokenType::BinaryOperator(BinaryOp::CompareOperator(CompareOp::Greater)) => {
-                        match (lhs_val.clone(), rhs_val.clone()) {
-                            (Int64(l), Int64(r)) => Some(Bool(l > r)),
-                            (UInt64(l), UInt64(r)) => Some(Bool(l > r)),
-                            (Float64(l), Float64(r)) => Some(Bool(l > r)),
-                            (Str(l), Str(r)) => Some(Bool(l > r)),
-                            _ => panic!(
-                                "Can't use > (greater than) in value variant {:?} with {:?}",
-                                lhs_val, rhs_val
-                            ),
-                        }
-                    }
-                    TokenType::BinaryOperator(BinaryOp::CompareOperator(CompareOp::LessEqual)) => {
-                        match (lhs_val.clone(), rhs_val.clone()) {
-                            (Int64(l), Int64(r)) => Some(Bool(l <= r)),
-                            (UInt64(l), UInt64(r)) => Some(Bool(l <= r)),
-                            (Float64(l), Float64(r)) => Some(Bool(l <= r)),
-                            (Str(l), Str(r)) => Some(Bool(l <= r)),
-                            _ => panic!(
-                                "Can't use <= (less than or equal) in value variant {:?} with {:?}",
-                                lhs_val, rhs_val
-                            ),
-                        }
-                    }
-                    TokenType::BinaryOperator(BinaryOp::CompareOperator(
-                        CompareOp::GreaterEqual,
-                    )) => match (lhs_val.clone(), rhs_val.clone()) {
+                    Token::Less => match (lhs_val.clone(), rhs_val.clone()) {
+                        (Int64(l), Int64(r)) => Some(Bool(l < r)),
+                        (UInt64(l), UInt64(r)) => Some(Bool(l < r)),
+                        (Float64(l), Float64(r)) => Some(Bool(l < r)),
+                        (Str(l), Str(r)) => Some(Bool(l < r)),
+                        _ => panic!(
+                            "Can't use < (less than) in value variant {:?} with {:?}",
+                            lhs_val, rhs_val
+                        ),
+                    },
+                    Token::Greater => match (lhs_val.clone(), rhs_val.clone()) {
+                        (Int64(l), Int64(r)) => Some(Bool(l > r)),
+                        (UInt64(l), UInt64(r)) => Some(Bool(l > r)),
+                        (Float64(l), Float64(r)) => Some(Bool(l > r)),
+                        (Str(l), Str(r)) => Some(Bool(l > r)),
+                        _ => panic!(
+                            "Can't use > (greater than) in value variant {:?} with {:?}",
+                            lhs_val, rhs_val
+                        ),
+                    },
+                    Token::LessEqual => match (lhs_val.clone(), rhs_val.clone()) {
+                        (Int64(l), Int64(r)) => Some(Bool(l <= r)),
+                        (UInt64(l), UInt64(r)) => Some(Bool(l <= r)),
+                        (Float64(l), Float64(r)) => Some(Bool(l <= r)),
+                        (Str(l), Str(r)) => Some(Bool(l <= r)),
+                        _ => panic!(
+                            "Can't use <= (less than or equal) in value variant {:?} with {:?}",
+                            lhs_val, rhs_val
+                        ),
+                    },
+                    Token::GreaterEqual => match (lhs_val.clone(), rhs_val.clone()) {
                         (Int64(l), Int64(r)) => Some(Bool(l >= r)),
                         (UInt64(l), UInt64(r)) => Some(Bool(l >= r)),
                         (Float64(l), Float64(r)) => Some(Bool(l >= r)),
@@ -276,39 +238,38 @@ impl Interpreter {
                             lhs_val, rhs_val
                         ),
                     },
-                    TokenType::BinaryOperator(BinaryOp::CompareOperator(CompareOp::EqualEqual)) => {
-                        match (lhs_val.clone(), rhs_val.clone()) {
-                            (Int64(l), Int64(r)) => Some(Bool(l == r)),
-                            (UInt64(l), UInt64(r)) => Some(Bool(l == r)),
-                            (Float64(l), Float64(r)) => Some(Bool(l == r)),
-                            (Str(l), Str(r)) => Some(Bool(l == r)),
-                            (Bool(l), Bool(r)) => Some(Bool(l == r)),
-                            _ => panic!(
-                                "Can't use == (equal equal) in value variant {:?} with {:?}",
-                                lhs_val, rhs_val
-                            ),
-                        }
-                    }
-                    TokenType::BinaryOperator(BinaryOp::CompareOperator(CompareOp::BangEqual)) => {
-                        match (lhs_val.clone(), rhs_val.clone()) {
-                            (Int64(l), Int64(r)) => Some(Bool(l != r)),
-                            (UInt64(l), UInt64(r)) => Some(Bool(l != r)),
-                            (Float64(l), Float64(r)) => Some(Bool(l != r)),
-                            (Str(l), Str(r)) => Some(Bool(l != r)),
-                            (Bool(l), Bool(r)) => Some(Bool(l == r)),
-                            _ => panic!(
-                                "Can't use != (bang equal) in value variant {:?} with {:?}",
-                                lhs_val, rhs_val
-                            ),
-                        }
-                    }
+                    Token::EqualEqual => match (lhs_val.clone(), rhs_val.clone()) {
+                        (Int64(l), Int64(r)) => Some(Bool(l == r)),
+                        (UInt64(l), UInt64(r)) => Some(Bool(l == r)),
+                        (Float64(l), Float64(r)) => Some(Bool(l == r)),
+                        (Str(l), Str(r)) => Some(Bool(l == r)),
+                        (Bool(l), Bool(r)) => Some(Bool(l == r)),
+                        _ => panic!(
+                            "Can't use == (equal equal) in value variant {:?} with {:?}",
+                            lhs_val, rhs_val
+                        ),
+                    },
+                    Token::BangEqual => match (lhs_val.clone(), rhs_val.clone()) {
+                        (Int64(l), Int64(r)) => Some(Bool(l != r)),
+                        (UInt64(l), UInt64(r)) => Some(Bool(l != r)),
+                        (Float64(l), Float64(r)) => Some(Bool(l != r)),
+                        (Str(l), Str(r)) => Some(Bool(l != r)),
+                        (Bool(l), Bool(r)) => Some(Bool(l == r)),
+                        _ => panic!(
+                            "Can't use != (bang equal) in value variant {:?} with {:?}",
+                            lhs_val, rhs_val
+                        ),
+                    },
                     _ => None,
                 }
             }
             Expr::Variable { value } => {
-                let identifier = value.value.clone().unwrap();
-                let variable = self.env.find_var(&identifier);
-                Some(variable.value.clone())
+                if let Token::Identifier(name) = value {
+                    let variable = self.env.find_var(&name);
+                    Some(variable.value.clone())
+                } else {
+                    panic!("Var is not identifier");
+                }
             }
             Expr::Call {
                 callee,

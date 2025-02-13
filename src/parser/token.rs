@@ -149,3 +149,11 @@ pub enum Token {
     // Nil
     Nil,
 }
+
+impl PartialEq for Token {
+    fn eq(&self, other: &Self) -> bool {
+        std::mem::discriminant(self) == std::mem::discriminant(other)
+    }
+}
+
+impl Eq for Token {}

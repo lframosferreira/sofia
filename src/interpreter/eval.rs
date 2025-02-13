@@ -456,8 +456,15 @@ impl Interpreter {
                     self.eval_stmt(stmt);
                 }
             }
-            Statement::WhileStatement { expr, stmt } => {
+            Statement::WhileStatement {
+                expr,
+                stmt,
+                initializer,
+            } => {
                 use Value::*;
+                if let Some(ini) = initializer {
+                    self.eval_stmt(ini);
+                }
                 loop {
                     if let Some(expr_val) = self.eval_expr(expr) {
                         if let Some(expr_b) = match expr_val {

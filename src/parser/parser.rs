@@ -83,11 +83,9 @@ pub enum Statement {
         else_stmt: Option<Box<Statement>>,
     },
     WhileStatement {
+        initializer: Option<Box<Statement>>, // Only for when while is used to handle For statements
         expr: Expr,
         stmt: Box<Statement>,
-    },
-    ForStatement {
-        initializer: Expr,
     },
     FunctionStatement {
         name: Token,
@@ -487,6 +485,7 @@ impl Parser {
         self.consume(TokenType::RightParen, "expect ')' after condition");
         let body = self.statement();
         Statement::WhileStatement {
+            initializer: None,
             expr: condition,
             stmt: Box::new(body),
         }
@@ -507,6 +506,7 @@ impl Parser {
         if !self.check(&TokenType::Semicolon) {
             condition = Some(self.expression());
         }
+
         self.consume(TokenType::Semicolon, "expect ';' after loop condition");
         let mut increment: Option<Expr> = None;
         if !self.check(&TokenType::RightParen) {
@@ -524,14 +524,22 @@ impl Parser {
                 value: Token::new(TokenType::Bool, Some("True".to_string())),
             });
             body = Statement::WhileStatement {
+                initializer: match initializer {
+                    Some(ini) => Some(Box::new(ini)),
+                    _ => None,
+                },
                 expr: condition.unwrap(),
                 stmt: Box::new(body),
             };
-        }
-        if let Some(init) = initializer {
-            body = Statement::Block {
-                statements: vec![init, body],
-            }
+        } else {
+            body = Statement::WhileStatement {
+                initializer: match initializer {
+                    Some(ini) => Some(Box::new(ini)),
+                    _ => None,
+                },
+                expr: condition.unwrap(),
+                stmt: Box::new(body),
+            };
         }
         body
     }

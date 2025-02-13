@@ -1,0 +1,11 @@
+func int soma(int x, int y, bool b){
+    let int resultado = 0;
+    if (b){
+       resultado = x+y; 
+    }else{
+        resultado = x*x+y*y;
+    }
+    return resultado;
+}
+
+print(soma(5, 6, False));

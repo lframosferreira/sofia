@@ -1,5 +1,5 @@
 #![allow(warnings)]
-mod interpreter;
+pub mod interpreter;
 mod parser;
 use std::{os::unix::fs::FileExt, process::exit};
 
@@ -10,22 +10,17 @@ use serde::{Deserialize, Serialize};
 use serde_json;
 use std::env;
 
-fn main() -> std::io::Result<()> {
-    let args: Vec<String> = env::args().collect();
-    if args.len() != 2 {
-        eprintln!("Usage: {} <parameter>", args[0]);
-        std::process::exit(1);
-    }
-    let content = std::fs::read_to_string(String::from(args[1].clone())).expect(
+pub fn interpret(filepath: String) -> std::io::Result<()> {
+    let content = std::fs::read_to_string(filepath).expect(
         "Error reading from
 input file",
     );
 
     let tokens = tokenize(content.as_bytes());
 
-    for token in tokens.clone() {
-        println!("{:?}", token);
-    }
+    // for token in tokens.clone() {
+    //     println!("{:?}", token);
+    // }
 
     let mut parser_object = Parser::new(tokens);
     let tree = parser_object.parse();

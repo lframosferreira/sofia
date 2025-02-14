@@ -1,7 +1,8 @@
 1. Strings in parsing are keeping the "" [FIXED]
 2. Syntax highlighting [CURRENT]
-3. CLI
+3. CLI [FIXED]
 4. runtime folder with some operations such as IO
 5. Compiler with LLVM: in a distant future
 6. Add tokens for [ ], I should be able to index lists and strings
 7. Add collections such as list, stack, queue and hashmaps to the builtin package of the language
+8. Errors [CURRENT]

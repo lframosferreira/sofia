@@ -119,11 +119,11 @@ fn check_string(content: &[u8], idx: usize) -> Option<String> {
         }
     }
 }
-fn check_bool_literal(buffer: &String) -> bool {
+fn check_bool_literal(buffer: &String) -> Option<Token> {
     match buffer.as_str() {
-        "True" => true,
-        "False" => true,
-        _ => false,
+        "True" => Some(Token::BoolLit(true)),
+        "False" => Some(Token::BoolLit(false)),
+        _ => None,
     }
 }
 
@@ -188,11 +188,8 @@ pub fn tokenize(content: &[u8]) -> Vec<Token> {
             // check reserved word and continue
             if let Some(reserved) = check_reserved_word(&buffer) {
                 tokens.push(reserved);
-            } else if check_bool_literal(&buffer) {
-                tokens.push(Token::BoolLit(match buffer.as_str() {
-                    "True" => true,
-                    _ => false,
-                }));
+            } else if let Some(bool_lit) = check_bool_literal(&buffer) {
+                tokens.push(bool_lit);
             } else {
                 tokens.push(Token::Identifier(buffer.clone()));
             }

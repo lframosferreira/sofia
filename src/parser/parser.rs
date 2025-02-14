@@ -2,12 +2,13 @@ use crate::parser::token::Token;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-enum VarType {
+pub enum VarType {
     Int64,
     Float64,
     Bool,
     String,
     List,
+    Nil,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

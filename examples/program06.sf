@@ -1,5 +1,5 @@
-let b1 = True;
-let b2 = False;
+let bool b1 = True;
+let bool b2 = False;
 if (b1 and b2){
     print("verdadeiro\n");
 }else{

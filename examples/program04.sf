@@ -1,3 +1,5 @@
-func nil say_hi_to(name) {
+func nil say_hi_to(string name) {
 	print("hi " + name + "\n");
 }
+
+say_hi_to("fifia");

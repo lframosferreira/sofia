@@ -32,8 +32,8 @@ input file",
     let serialized = serde_json::to_string(&tree).unwrap();
     std::fs::write("output.json", serialized).expect("Unable to write output json file.");
 
-    // let mut interp = Interpreter::new();
-    // interp.eval(tree);
+    let mut interp = Interpreter::new();
+    interp.eval(tree);
 
     Ok(())
 }

@@ -1,4 +1,4 @@
-use crate::parser::parser::{Declaration, Expr, Parameter, Statement};
+use crate::parser::parser::{Declaration, Expr, Parameter, Statement, VarType};
 use crate::parser::token::Token;
 
 #[derive(Debug, Clone)]
@@ -276,14 +276,6 @@ impl Interpreter {
                 paren,
                 arguments,
             } => {
-                enum VarType {
-                    Bool,
-                    Int,
-                    Float,
-                    Str,
-                    Func,
-                    Nil,
-                }
                 if let Some(callee_value) = self.eval_expr(callee) {
                     if let Value::Func(func) = callee_value {
                         if arguments.len() != func.parameters.len() {
@@ -296,12 +288,13 @@ impl Interpreter {
                         let parameters_types: Vec<_> = func
                             .parameters
                             .iter()
-                            .map(|p| match p.type_ {
-                                TokenType::ReservedWord(Reserved::Bool) => VarType::Bool,
-                                TokenType::ReservedWord(Reserved::Int) => VarType::Int,
-                                TokenType::ReservedWord(Reserved::Float) => VarType::Float,
-                                TokenType::ReservedWord(Reserved::String) => VarType::Str,
-                                TokenType::Nil => VarType::Nil,
+                            .map(|p| match p.type_token {
+                                Token::Bool => VarType::Bool,
+                                Token::Int => VarType::Int64,
+                                Token::Float => VarType::Float64,
+                                Token::String => VarType::String,
+                                Token::List => VarType::List,
+                                Token::Nil => VarType::Nil,
                                 _ => unreachable!(),
                             })
                             .collect();
@@ -310,9 +303,9 @@ impl Interpreter {
                             .zip(parameters_types)
                             .map(|val| match val {
                                 (Value::Bool(_), VarType::Bool) => true,
-                                (Value::Int64(_), VarType::Int) => true,
-                                (Value::Float64(_), VarType::Float) => true,
-                                (Value::Str(_), VarType::Str) => true,
+                                (Value::Int64(_), VarType::Int64) => true,
+                                (Value::Float64(_), VarType::Float64) => true,
+                                (Value::Str(_), VarType::String) => true,
                                 (Value::Nil, VarType::Nil) => true,
                                 _ => false,
                             })
@@ -321,7 +314,13 @@ impl Interpreter {
                             panic!("Values passed to function doesn't fit the parameter types of the functions");
                         }
                         arguments_evaluated.iter().enumerate().for_each(|(i, arg)| {
-                            self.env.insert_var(&func.parameters[i].identifier, arg);
+                            self.env.insert_var(
+                                match &func.parameters[i].identifier_token {
+                                    Token::Identifier(id) => id,
+                                    _ => panic!("Parameter is not an identifier"),
+                                },
+                                arg,
+                            );
                         });
                         let mut ret: Option<Value> = None;
                         let mut decl_count: usize = 0;
@@ -355,8 +354,13 @@ impl Interpreter {
             }
             Expr::Assign { name, value } => {
                 if let Some(expr_value) = self.eval_expr(value) {
-                    self.env
-                        .change_var(&name.value.clone().unwrap(), &expr_value);
+                    self.env.change_var(
+                        match &name {
+                            Token::Identifier(id) => id,
+                            _ => panic!("Parameter is not identifier"),
+                        },
+                        &expr_value,
+                    );
                     Some(expr_value)
                 } else {
                     panic!("Expression in assignment doesn't evaluate to anything, should be NIL in future");
@@ -375,15 +379,25 @@ impl Interpreter {
             } => {
                 if let Some(expr) = initializer_expr {
                     if let Some(expr_value) = self.eval_expr(expr) {
-                        self.env
-                            .insert_var(&name.value.clone().unwrap(), &expr_value);
+                        self.env.insert_var(
+                            match &name {
+                                Token::Identifier(id) => id,
+                                _ => panic!("Identifier token problem"),
+                            },
+                            &expr_value,
+                        );
                         Some(expr_value)
                     } else {
                         panic!("Expression in assignment doesn't evaluate to anything, should be NIL in future");
                     }
                 } else {
-                    self.env
-                        .insert_var(&name.value.clone().unwrap(), &Value::Nil);
+                    self.env.insert_var(
+                        match &name {
+                            Token::Identifier(id) => id,
+                            _ => panic!("Identifier token problem"),
+                        },
+                        &Value::Nil,
+                    );
                     None
                 }
             }
@@ -393,11 +407,15 @@ impl Interpreter {
                 parameters,
                 body,
             } => {
+                let id = match &name {
+                    Token::Identifier(id) => id,
+                    _ => panic!("Identifier token problem"),
+                };
                 self.env.insert_var(
-                    &name.value.clone().unwrap(),
+                    id,
                     &Value::Func(Function {
-                        name: name.value.clone().unwrap(),
-                        return_type: return_type._type.clone(),
+                        name: id.to_string(),
+                        return_type: return_type.clone(),
                         parameters: parameters.to_vec(),
                         body: body.to_vec(),
                     }),

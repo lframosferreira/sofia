@@ -18,9 +18,9 @@ input file",
 
     let tokens = tokenize(content.as_bytes());
 
-    // for token in tokens.clone() {
-    //     println!("{:?}", token);
-    // }
+    for token in tokens.clone() {
+        println!("{:?}", token);
+    }
 
     let mut parser_object = Parser::new(tokens);
     let tree = parser_object.parse();

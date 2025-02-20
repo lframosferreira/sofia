@@ -47,6 +47,10 @@ pub enum Expr {
         lhs: Box<Expr>,
         rhs: Box<Expr>,
     },
+    Indexing {
+        identifier: Token,
+        expr: Box<Expr>,
+    },
     Assign {
         name: Token,
         value: Box<Expr>,
@@ -157,7 +161,7 @@ impl Parser {
         false
     }
 
-    fn match_up(&mut self, tokens: &[Token]) -> bool {
+    fn match_up(&mut self, tokens: &[&Token]) -> bool {
         for token in tokens.iter() {
             if self.check(&token) {
                 self.advance();
@@ -169,28 +173,44 @@ impl Parser {
 
     pub fn primary(&mut self) -> Expr {
         if self.match_up(&[
-            Token::Int64(0),
-            Token::Float64(0.0),
-            Token::BoolLit(true),
-            Token::StringLit("".to_string()),
+            &Token::Int64(0),
+            &Token::Float64(0.0),
+            &Token::BoolLit(true),
+            &Token::StringLit("".to_string()),
         ]) {
-            return Expr::Litheral {
-                value: self.previous(),
-            };
+            if std::mem::discriminant(&Token::StringLit("".to_string()))
+                == std::mem::discriminant(&self.previous())
+                && self.match_up(&[&Token::LeftBracket])
+            {
+                let identifier = self.previous();
+                let expr = self.expression();
+                self.consume(
+                    Token::RightBracket,
+                    "Expected closing right bracket when indexing string",
+                );
+                return Expr::Indexing {
+                    identifier,
+                    expr: Box::new(expr),
+                };
+            } else {
+                return Expr::Litheral {
+                    value: self.previous(),
+                };
+            }
         }
-        if self.match_up(&[Token::Identifier("".to_string())]) {
+        if self.match_up(&[&Token::Identifier("".to_string())]) {
             return Expr::Variable {
                 value: self.previous(),
             };
         }
-        if self.match_up(&[Token::LeftParen]) {
+        if self.match_up(&[&Token::LeftParen]) {
             let expr = self.expression();
             self.consume(Token::RightParen, "we need a closeing right paren");
             return Expr::Grouping {
                 middle: Box::new(expr),
             };
         }
-        panic!("Expect expression");
+        panic!("Expected expression");
     }
 
     pub fn finish_call(&mut self, callee: Expr) -> Expr {
@@ -198,7 +218,7 @@ impl Parser {
         if !self.check(&Token::RightParen) {
             loop {
                 arguments.push(self.expression());
-                if !self.match_up(&[Token::Comma]) {
+                if !self.match_up(&[&Token::Comma]) {
                     break;
                 }
             }
@@ -214,7 +234,7 @@ impl Parser {
     pub fn call(&mut self) -> Expr {
         let mut expr = self.primary();
         loop {
-            if self.match_up(&[Token::LeftParen]) {
+            if self.match_up(&[&Token::LeftParen]) {
                 expr = self.finish_call(expr);
             } else {
                 break;
@@ -224,7 +244,7 @@ impl Parser {
     }
 
     pub fn unary(&mut self) -> Expr {
-        if self.match_up(&[Token::Not, Token::Minus]) {
+        if self.match_up(&[&Token::Not, &Token::Minus]) {
             let operator = self.previous();
             let rhs = self.unary();
             return Expr::UnaryExpr {
@@ -240,7 +260,7 @@ impl Parser {
         let asterisk = Token::Asterisk;
         let slash = Token::Slash;
         let modulo = Token::Modulo;
-        while self.match_up(&[asterisk.clone(), slash.clone(), modulo.clone()]) {
+        while self.match_up(&[&asterisk, &slash, &modulo]) {
             let operator = self.previous();
             let rhs = self.unary();
             expr = Expr::BinaryExpr {
@@ -256,7 +276,7 @@ impl Parser {
         let mut expr = self.factor();
         let minus = Token::Minus;
         let plus = Token::Plus;
-        while self.match_up(&[minus.clone(), plus.clone()]) {
+        while self.match_up(&[&minus, &plus]) {
             let operator = self.previous();
             let rhs = self.factor();
             expr = Expr::BinaryExpr {
@@ -274,12 +294,7 @@ impl Parser {
         let greater_equal = Token::GreaterEqual;
         let less = Token::Less;
         let less_equal = Token::LessEqual;
-        while self.match_up(&[
-            greater.clone(),
-            greater_equal.clone(),
-            less.clone(),
-            less_equal.clone(),
-        ]) {
+        while self.match_up(&[&greater, &greater_equal, &less, &less_equal]) {
             let operator = self.previous();
             let rhs = self.term();
             expr = Expr::BinaryExpr {
@@ -295,7 +310,7 @@ impl Parser {
         let mut expr = self.comparison();
         let bang_equal = Token::BangEqual;
         let equal_equal = Token::EqualEqual;
-        while self.match_up(&[bang_equal.clone(), equal_equal.clone()]) {
+        while self.match_up(&[&bang_equal, &equal_equal]) {
             let operator = self.previous();
             let rhs = self.comparison();
             expr = Expr::BinaryExpr {
@@ -309,7 +324,7 @@ impl Parser {
 
     pub fn and(&mut self) -> Expr {
         let mut expr = self.equality();
-        while self.match_up(&[Token::And]) {
+        while self.match_up(&[&Token::And]) {
             let operator = self.previous();
             let rhs = self.equality();
             expr = Expr::Logical {
@@ -324,7 +339,7 @@ impl Parser {
     pub fn or(&mut self) -> Expr {
         let mut expr = self.and();
 
-        while self.match_up(&[Token::Or]) {
+        while self.match_up(&[&Token::Or]) {
             let operator = self.previous();
             let rhs = self.and();
             expr = Expr::Logical {
@@ -338,7 +353,7 @@ impl Parser {
 
     pub fn assignment(&mut self) -> Expr {
         let expr = self.or();
-        if self.match_up(&[Token::Equal]) {
+        if self.match_up(&[&Token::Equal]) {
             let equals = self.previous();
             let assig_value = self.assignment();
 
@@ -357,8 +372,10 @@ impl Parser {
     }
 
     pub fn print_statement(&mut self) -> Statement {
+        self.consume(Token::LeftParen, "Expected left paren ( after print");
         let expr = self.expression(); // here we are accepting any kind of expression but it should
                                       // be only groupings
+        self.consume(Token::RightParen, "Expected right paren ) after print");
         self.consume(Token::Semicolon, "expect ';' after value");
         Statement::PrintStatement { expr }
     }
@@ -370,7 +387,7 @@ impl Parser {
         );
         let name = self.consume(Token::Identifier("".to_string()), "expect variable name.");
         let mut initializer: Option<Expr> = None;
-        if self.match_up(&[Token::Equal]) {
+        if self.match_up(&[&Token::Equal]) {
             initializer = Some(self.expression());
         }
         self.consume(Token::Semicolon, "expect ';' after var declaration.");
@@ -403,7 +420,7 @@ impl Parser {
                     type_token: parameter_type,
                     identifier_token: parameter_name,
                 });
-                if !self.match_up(&[Token::Comma]) {
+                if !self.match_up(&[&Token::Comma]) {
                     break;
                 }
             }
@@ -420,10 +437,10 @@ impl Parser {
     }
 
     pub fn declaration(&mut self) -> Statement {
-        if self.match_up(&[Token::Let]) {
+        if self.match_up(&[&Token::Let]) {
             return self.variable_declaration();
         }
-        if self.match_up(&[Token::Func]) {
+        if self.match_up(&[&Token::Func]) {
             return self.function_declaration();
         } else {
             return self.statement();
@@ -451,7 +468,7 @@ impl Parser {
         self.consume(Token::RightParen, "expect')' after if condition");
         let then_branch = self.statement();
         let mut else_branch: Option<Statement> = None;
-        if self.match_up(&[Token::Else]) {
+        if self.match_up(&[&Token::Else]) {
             else_branch = Some(self.statement());
         }
         Statement::IfStatement {
@@ -479,9 +496,9 @@ impl Parser {
     pub fn for_statement(&mut self) -> Statement {
         self.consume(Token::LeftParen, "expect '(' after for");
         let mut initializer: Option<Statement> = None;
-        if self.match_up(&[Token::Semicolon]) {
+        if self.match_up(&[&Token::Semicolon]) {
             initializer = None;
-        } else if self.match_up(&[Token::Let]) {
+        } else if self.match_up(&[&Token::Let]) {
             initializer = Some(self.variable_declaration());
         } else {
             initializer = Some(self.expr_statement());
@@ -540,19 +557,19 @@ impl Parser {
     }
 
     pub fn statement(&mut self) -> Statement {
-        if self.match_up(&[Token::Print]) {
+        if self.match_up(&[&Token::Print]) {
             return self.print_statement();
-        } else if self.match_up(&[Token::LeftCurlyBracket]) {
+        } else if self.match_up(&[&Token::LeftCurlyBracket]) {
             return Statement::Block {
                 statements: self.block(),
             };
-        } else if self.match_up(&[Token::If]) {
+        } else if self.match_up(&[&Token::If]) {
             return self.if_statement();
-        } else if self.match_up(&[Token::While]) {
+        } else if self.match_up(&[&Token::While]) {
             return self.while_statement();
-        } else if self.match_up(&[Token::For]) {
+        } else if self.match_up(&[&Token::For]) {
             return self.for_statement();
-        } else if self.match_up(&[Token::Return]) {
+        } else if self.match_up(&[&Token::Return]) {
             return self.return_statement();
         } else {
             return self.expr_statement();

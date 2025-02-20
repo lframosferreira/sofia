@@ -1,1 +1,36 @@
-[{"PrintStatement":{"expr":{"Grouping":{"middle":{"Litheral":{"value":{"Int64":9}}}}}}},{"PrintStatement":{"expr":{"Grouping":{"middle":{"Litheral":{"value":{"BoolLit":true}}}}}}},{"PrintStatement":{"expr":{"Grouping":{"middle":{"Litheral":{"value":{"Int64":898}}}}}}},{"PrintStatement":{"expr":{"Grouping":{"middle":{"Litheral":{"value":{"Float64":654.3}}}}}}}]
+[
+  {
+    "Declaration": {
+      "VariableDeclaration": {
+        "name": {
+          "Identifier": "txt"
+        },
+        "type_": "String",
+        "initializer_expr": {
+          "Litheral": {
+            "value": {
+              "StringLit": "oi meus amigos"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "PrintStatement": {
+      "expr": {
+        "Indexing": {
+          "identifier": "LeftBracket",
+          "expr": {
+            "Litheral": {
+              "value": {
+                "Int64": 0
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+]
+

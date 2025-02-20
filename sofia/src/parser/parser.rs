@@ -351,8 +351,18 @@ impl Parser {
     }
 
     pub fn expression(&mut self) -> Expr {
-        let expr = self.assignment()/
-            if self.match_up(&&Token)
+        let mut expr = self.assignment();
+        if self.match_up(&[&Token::LeftBracket]) {
+            expr = Expr::Indexing {
+                indexed: Box::new(expr),
+                value: Box::new(self.expression()),
+            };
+            self.consume(
+                Token::RightBracket,
+                "expected right bracket after left bracket in indexing",
+            );
+        }
+        expr
     }
 
     pub fn print_statement(&mut self) -> Statement {

@@ -1,1 +1,1 @@
-[{"Declaration":{"VariableDeclaration":{"name":{"Identifier":"x"},"type_":"Int","initializer_expr":null}}},{"PrintStatement":{"expr":{"Variable":{"value":{"Identifier":"x"}}}}}]
+[{"Declaration":{"FunctionDeclaration":{"name":{"Identifier":"main"},"return_type":{"Identifier":"Nil"},"parameters":[],"body":[{"PrintStatement":{"expr":{"Litheral":{"value":{"StringLit":"I did it!"}}}}},{"ReturnStatement":{"expr":null}}]}}},{"ExprStatement":{"expr":{"Call":{"callee":{"Variable":{"value":{"Identifier":"main"}}},"paren":"RightParen","arguments":[]}}}}]

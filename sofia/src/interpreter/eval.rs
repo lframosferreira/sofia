@@ -126,6 +126,28 @@ impl Interpreter {
                     _ => None,
                 }
             }
+            Expr::Indexing { indexed, value } => {
+                if let Some(indexed_expr) = self.eval_expr(indexed) {
+                    // should check if it is a list or a string, the only thingsd that can be
+                    // indexed
+                    if let Some(value_expr) = self.eval_expr(value) {
+                        match (indexed_expr, value_expr) {
+                            (Value::Str(s), Value::Int64(i)) => {
+                                if i < 0 || i > s.len().try_into().unwrap() {
+                                    panic!("Invalid index!");
+                                }
+
+                                Some(Value::Str(s.chars().nth(i as usize).unwrap().to_string()))
+                            }
+                            _ => panic!("Invalid types for indexing"),
+                        }
+                    } else {
+                        panic!("Value of index didn't evaluate to anything");
+                    }
+                } else {
+                    panic!("Value to be indexed didn't evaluate to anything");
+                }
+            }
             Expr::UnaryExpr { op, child } => {
                 if let Some(expr_val) = self.eval_expr(child) {
                     match op {
@@ -332,6 +354,7 @@ impl Interpreter {
                                     } else {
                                         ret = Some(Value::Nil);
                                     }
+                                    break;
                                 }
                                 _ => {
                                     if let Statement::Declaration(_) = stmt {
@@ -505,7 +528,10 @@ impl Interpreter {
             Statement::Declaration(declaration) => {
                 self.eval_decl(declaration);
             }
-            _ => println!("Not implemented yet for eval: {:?}", stmt),
+            Statement::ReturnStatement { expr } => {
+                panic!("There are no early returns in this language, return stmts should be at the end of a function");
+            }
+            _ => panic!("Not implemented yet for eval: {:?}", stmt),
         }
     }
 

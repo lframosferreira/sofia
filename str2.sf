@@ -1,2 +1,0 @@
-let string txt = "oi meus amigos";
-print("ola"[0]);

@@ -1,0 +1,7 @@
+func Nil main() {
+
+    print("I did it!");
+    return;
+}
+
+main();

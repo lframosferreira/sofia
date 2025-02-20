@@ -48,8 +48,8 @@ pub enum Expr {
         rhs: Box<Expr>,
     },
     Indexing {
-        identifier: Token,
-        expr: Box<Expr>,
+        indexed: Box<Expr>,
+        value: Box<Expr>,
     },
     Assign {
         name: Token,
@@ -178,25 +178,9 @@ impl Parser {
             &Token::BoolLit(true),
             &Token::StringLit("".to_string()),
         ]) {
-            if std::mem::discriminant(&Token::StringLit("".to_string()))
-                == std::mem::discriminant(&self.previous())
-                && self.match_up(&[&Token::LeftBracket])
-            {
-                let identifier = self.previous();
-                let expr = self.expression();
-                self.consume(
-                    Token::RightBracket,
-                    "Expected closing right bracket when indexing string",
-                );
-                return Expr::Indexing {
-                    identifier,
-                    expr: Box::new(expr),
-                };
-            } else {
-                return Expr::Litheral {
-                    value: self.previous(),
-                };
-            }
+            return Expr::Litheral {
+                value: self.previous(),
+            };
         }
         if self.match_up(&[&Token::Identifier("".to_string())]) {
             return Expr::Variable {
@@ -338,7 +322,6 @@ impl Parser {
 
     pub fn or(&mut self) -> Expr {
         let mut expr = self.and();
-
         while self.match_up(&[&Token::Or]) {
             let operator = self.previous();
             let rhs = self.and();
@@ -368,7 +351,8 @@ impl Parser {
     }
 
     pub fn expression(&mut self) -> Expr {
-        self.assignment()
+        let expr = self.assignment()/
+            if self.match_up(&&Token)
     }
 
     pub fn print_statement(&mut self) -> Statement {

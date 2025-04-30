@@ -1,6 +1,6 @@
 # Sofia
 
-Sofia is a interpreted procedural programming language that takes a lot of inspiration from Python. It's interpreter is completely written in Rust.
+Sofia is a programming language that takes a lot of inspiration from Python. It's interpreter is completely written in Rust.
 
 Some examples of Sofia programs can be seen in the `examples` directory.
 
@@ -13,5 +13,13 @@ I used a lot from the Crafting Interpreters book.
 ## About
 
 The language is really simple since it's the first time I am doing something like this. This is a
-toy project. If you have suggestions and ideas, please open an issue or sent me an email. I would love the help to
+toy project. If you have suggestions and ideas, please open an issue or send me an email. I would love the help to
 learn more about interpreters/compilers.
+
+## TODOs
+
+- Syntax highlighting and treesitter integration (current)
+- Add list/string indexing. Currently the language does not support this
+- Add common data structures such as stacks, queue and hashmaps to the language std library
+- Improve error handling in the language
+- Add a compiler
